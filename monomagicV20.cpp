@@ -2034,7 +2034,7 @@ Player Player::Cast(Player enemy){
 			this->TapLands[T] += this->Cost;
 		}
 	}
-	//direct damage effects
+	//determine max direct damage can be dealt this turn
 	this->MaxBurn[T] = 0;
 	if (this->TapDam > 0 || (this->SacDam > 0 && this->Grave[T] >= this->Threshold)){
 		this->MaxBurn[T] = this->Spike * ((this->Lands[T] - this->TapLands[T]) / (this->TapDam + this->SacDam));
@@ -2058,13 +2058,13 @@ Player Player::Cast(Player enemy){
 			this->MaxBurn[T] = 0;
 		}
 	}
-//	cout << this->MaxBurn[T] << enemy.Chancellor << this->Spike;
+	//if can kill opponent, do so
 	if (this->MaxBurn[T] >= enemy.Life[T] || (enemy.Extract > 0 && this->MaxBurn[T] >= enemy.Life[T] - enemy.Pain) || (this->Spike > 0 && this->Burn == 0) || (enemy.Chancellor == true && enemy.Spike > 0) || enemy.Slug == true){
 		while (MaxBurn[T] > 0){
 			enemy.Life[T] -= this->Burning(enemy);
 		}
 	}
-	//enemy burn active player creatures
+	//enemy burns active player creatures
 	StrikeDead = 0;
 	while (enemy.MaxBurn[T] >= this->Tough && this->Field[T] > 0 && BurnLost == true){
 		enemy.Burning(enemy);
@@ -2088,6 +2088,9 @@ Player Player::Cast(Player enemy){
 		if (this->Ichorid > 0){
 			this->MaxAttack = this->Grave[T] / this->Ichorid;
 		} else {
+			if (this->TapCrtr[T] > this->Field[T]) {
+				this->TapCrtr[T] = this->Field[T];
+			}
 			this->MaxAttack = this->Field[T] - this->TapCrtr[T];
 		}
 	}
@@ -2154,14 +2157,11 @@ Player Player::Declare(Player enemy){
 		}
 	}
 	//exile graveyard costs to attack
-	if (this->Hostile > 0){
-		this->Grave[T] -= this->Attack[T] * this->Hostile;
-	}
+	this->Grave[T] -= this->Attack[T] * this->Hostile;
 	if (this->Ichorid > 0){
 		this->Grave[T] -= this->Attack[T] * this->Ichorid;
 		this->Field[T] += this->Attack[T];
 	}
-	cout << this->Tyrant << "\n";
 	enemy.Grave[T] -= this->Attack[T] * this->Tyrant;
 	if (enemy.Grave[T] < 0) {
 		enemy.Grave[T] = 0;
