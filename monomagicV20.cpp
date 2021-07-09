@@ -2161,7 +2161,7 @@ Player Player::Declare(Player enemy){
 		this->Grave[T] -= this->Attack[T] * this->Ichorid;
 		this->Field[T] += this->Attack[T];
 	}
-	//cout << this->Tyrant << "\n";
+	cout << this->Tyrant << "\n";
 	enemy.Grave[T] -= this->Attack[T] * this->Tyrant;
 	if (enemy.Grave[T] < 0) {
 		enemy.Grave[T] = 0;
