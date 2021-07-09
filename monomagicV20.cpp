@@ -2568,7 +2568,7 @@ int main(){
 	GameOver = 0;
 	Game = 1;
 	SkipGame = 0;
-	cout << "MONO MAGIC 2021" << "\n";
+	cout << "MONO MAGIC 2021asdfsdf" << "\n";
 	cout << "By Robert Vroman" << "\n";
 	cout << "All rights reserved Hasbro and Wizards of the Coast" << "\n" << "\n";
 	P1.ClearVars();
