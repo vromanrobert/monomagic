@@ -111,7 +111,7 @@ class Player{ //move functions out
 		bool Hex = false; //creature that cannot be targeted
 		bool Indestruct = false; //this creature is indestructible
 		bool Infect = false; //creature gives poison counters and -1/-1 counters instead of damage -ONLY POISON WORKS
-		bool IsCreat = false; //this card deals damage via creatures
+		bool IsCreat = true; //this card deals damage via creatures
 		bool IsLand = false; //this card is a land
 		bool Link = false; //creature has lifelink
 		bool Madness = false; //creature that enters play when discarded
@@ -146,23 +146,18 @@ class Player{ //move functions out
 		int TapLands[62]; //# tapped lands in play
 		int TapCrtr[62]; //# tapped creatures in play
 		int Burning(); //activate direct damage abilities
-
 		int Debug(); //display current gamestate
 		void DeckChoice(); //menu for deck selection
 		void FlagOff(); //reset win flags
 		int KillAttacker(Player enemy); //remove dead creature
-
 		void Next(); //pass gamestate variables after every turn
 		void Summary(Player enemy); //end of game report
 		Player Parameters(Player enemy); //adjust abilities relative to enemy deck
 		Player Setup(Player enemy); //initialize gamestate
 		Player Chance(Player enemy); //trigger Chancellors
-
 		Player AttackSkip(Player enemy); //Losing player looks for most recent attack and blocks instead
 		Player Win(Player enemy); //losing player searches for alt blocks/attacks/choices
 		Player Reset(Player enemy); //reset the game to a previous turn
-		Player BlockShuffle(Player enemy); //losing player incrementally rearranges existing blockers
-
 		void FullCopy(Player enemy); //copy all decision variables on to next turn during stalemate
 } P1, P2, active, enemy;
 
@@ -176,6 +171,8 @@ int Combat(); //Resolve combat
 int Declare(); //set attackers and blockers
 void End(); //end step
 int BlockSave(); //defender adjusts blockers to avoid immediate death
+int BlockShuffle(); //losing player incrementally rearranges existing blockers
+
 
 int Player::Debug(){
 	cout << this->Name << "\n";
@@ -996,7 +993,7 @@ Player Player::Win(Player enemy){
 				if (enemy.Decision[TC] > 1){
 //					SkipGame = Game;
 				}
-				enemy.ChangeMind = true;
+				enemy.ChangeMind = true; //used?
 				return enemy;
 			}
 			//SKIP ATTACK
@@ -1014,10 +1011,10 @@ Player Player::Win(Player enemy){
 			for (int Shuffle = Attacker + 1; Shuffle < this->Attack[TC] + 1; Shuffle++){ //check the # of blockers for each attacker following it,
 				if (enemy.Fight[TC][Attacker] > enemy.Fight[TC][Shuffle] + 1){ //if any attacker has 2+ more blockers than a subsequent attacker,
 					if(this->Trample == true || this->VarPT == true || enemy.VarPT == true){ //shuffle blockers once
-						enemy = this->BlockShuffle(enemy);
+						BlockShuffle();
 					} else {
 						while (enemy.Fight[TC][Attacker] > 1){
-							enemy = this->BlockShuffle(enemy); //shuffle blockers as needed
+							BlockShuffle(); //shuffle blockers as needed
 						}
 					}
 					enemy = this->Reset(enemy); //reset gamestate to turn TC
@@ -1149,23 +1146,23 @@ Player Player::Win(Player enemy){
 }
 
 		//incrementally shuffle through multi-blocking options
-Player Player::BlockShuffle(Player enemy){
+int BlockShuffle(){
 	enemy.Fight[TC][Attacker]--;
 	Deployed = 0;
 	for(ct3 = 0; ct3 < Attacker; ct3++){
 		Deployed += enemy.Fight[TC][ct3];
 	}
 	enemy.Fight[TC][Attacker+1] = enemy.Blockers[TC] - (Deployed + enemy.Fight[TC][Attacker] + ActualSkips);
-	for (ct3 = Attacker + 2; ct3 < this->Attack[TC] + 1; ct3++){
+	for (ct3 = Attacker + 2; ct3 < active.Attack[TC] + 1; ct3++){
 		enemy.Fight[TC][ct3] = 0;
 	}
-	for (ct3 = Attacker; ct3 < this->Attack[TC] - 1; ct3++){
+	for (ct3 = Attacker; ct3 < active.Attack[TC] - 1; ct3++){
 		if (enemy.Fight[TC][ct3+1] > enemy.Fight[TC][ct3]){
 			enemy.Fight[TC][ct3+2] = enemy.Fight[TC][ct3+1] - enemy.Fight[TC][ct3];
 			enemy.Fight[TC][ct3+1] = enemy.Fight[TC][ct3];
 		}
 	}
-	return enemy;
+	return 0;
 }
 
 		//adjust blockers to avoid immediate death
@@ -1640,10 +1637,10 @@ int FlipCard(){
 			active.Link = false;
 			active.Haste = false;
 			active.TapGen = 6;
-			active.Flip = 5;		
-			return 0;
+			active.Flip = 5;
 		}
 	}
+	return 0;
 }
 
 //-GAME PHASES-
