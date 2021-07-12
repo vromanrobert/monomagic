@@ -875,7 +875,7 @@ void Player::DeckChoice(){
 	}
 	Power = PStart;
 	Tough = TStart;
-	if (this->Name == P2.Name && this->StartHand == 1){ //decks that don't need more than 1 card in hand mull to 0 on the draw.
+	if (this->Name == P2.Name && this->StartHand == 1){ //decks that don't need more than 1 card in hand should mull to 0 on the draw.
 		this->StartHand = 0;
 	}
 	if (this->SacMill > 0 || this->Spike > 0 || this->ManLand > 1){ //use mill and burn cards in 1st main
@@ -890,7 +890,7 @@ void Player::DeckChoice(){
 //		cout << "hasty pants" << "\n";
 	}
 	if (this->Factory > 0 || this->Lava > 0 || this->Rage > 0 || this->Barrens > 0 || this->Switch == true || this->Mammoth > 0 || this->Team == true){
-		this->VarPT = true;
+		this->VarPT = true; //flag if deck's p/t can change for any reason
 	}
 }
 
@@ -1248,7 +1248,7 @@ Player Player::BlockSave(Player enemy){
 					BlockedAttackers++;
 //					SkipGame = Game;
 				}
-//				cout << "you're gonna die" << "\n";
+//				cout << "ur gonna die" << "\n";
 				Attacker = 1;
 			}
 			Attacker--;
@@ -1281,7 +1281,7 @@ Player Player::Reset(Player enemy){
 
 		//Losing player looks for most recent attack and blocks instead
 Player Player::AttackSkip(Player enemy){
-	//if all blocking options already played, switch the most recent attack to block, if enemy has at least one coresponding attack or block or is burn
+	//if all blocking options this turn already played, switch the most recent attack to block, if enemy has at least one coresponding attack or block or is burn
 	if (enemy.Attack[TC] > 0 && (this->Name == P2.Name || TC < T)){ //check the below
 		if (this->Attack[TC] > 0 || (this->Attack[TC+1] > 0 && this->Name == P1.Name) || this->Fight[TC][1] > 0 || this->Fight[TC+1][1] > 0 || (this->Burn > 0 && BurnLost == true)){
 			enemy.AttackReset = true;
@@ -1352,7 +1352,7 @@ void Player::FullCopy(Player enemy){ //auto-fill remaining turns
 	this->Deck[T+1] = this->Deck[T] - 1;
 	this->Grave[T+1] = this->Grave[T] + 1; //CONFIRM
 	if (this->Ichorid > 0 || this->Hostile > 0){
-		this->Grave[T+1] --; //QUESTIONABLE
+		this->Grave[T+1]--; //QUESTIONABLE
 	}
 	this->Blockers[T+1] = this->Blockers[T];
 	for (Attacker = 1; Attacker <= enemy.Attack[T] + 1; Attacker++){
@@ -1558,10 +1558,10 @@ int Player::KillAttacker(Player enemy){
 		if (enemy.Choice[T] == 1){ //enemy takes morph option
 			enemy.TapLands[T] += enemy.Morph; //pay cost
 			enemy.Lands[T]++; //enemy gains land
-			if (ActivePlayer == enemy.Name){ //if morpher attacked, new land is tapped
+			if (ActivePlayer == enemy.Name){ //if dead morpher attacked, new land is tapped
 				enemy.TapLands[T]++;
 			}
-							SkipGame = Game;
+			SkipGame = Game;
 			cout << enemy.Name << " morphs and doesn't kill your guy. Game " << Game << " Turn " << T << "\n";
 			return 0;
 		}
@@ -1673,7 +1673,7 @@ Player Player::Chance(Player enemy){
 	return enemy;
 }
 
-	//Activate flip card
+	//flip Westvale Abbey
 int Player::FlipCard(){
 	if (this->Flip > 0){
 		if (this->Field[T] >= this->Flip && this->Lands[T] - this->TapLands[T] >= this->TapGen){
