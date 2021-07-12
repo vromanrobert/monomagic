@@ -145,37 +145,35 @@ class Player{ //move functions out
 		int SkipAttack[62]; //# available attackers not attacking
 		int TapLands[62]; //# tapped lands in play
 		int TapCrtr[62]; //# tapped creatures in play
-		int Burning(); //activate direct damage abilities
-
+		int Burning(Player enemy); //activate direct damage abilities
+		void ClearVars(); //set all variables to default
 		int Debug(); //display current gamestate
 		void DeckChoice(); //menu for deck selection
 		void FlagOff(); //reset win flags
+		int FlipCard(); //activate flip cards
 		int KillAttacker(Player enemy); //remove dead creature
-
-		void Next(); //pass gamestate variables after every turn
+		int LandFall(Player enemy); //play lands
+		void Next(Player enemy); //pass gamestate variables after every turn
 		void Summary(Player enemy); //end of game report
 		Player Parameters(Player enemy); //adjust abilities relative to enemy deck
 		Player Setup(Player enemy); //initialize gamestate
 		Player Chance(Player enemy); //trigger Chancellors
-
+		Player Cast(Player enemy); //play cards
+		Player Combat(Player enemy); //Resolve combat
+		Player Declare(Player enemy); //set attackers and blockers
+		Player End(Player enemy); //end step
 		Player AttackSkip(Player enemy); //Losing player looks for most recent attack and blocks instead
+int Player Turn(active, enemy); //main turn cycle
+
 		Player Win(Player enemy); //losing player searches for alt blocks/attacks/choices
 		Player Reset(Player enemy); //reset the game to a previous turn
 		Player BlockShuffle(Player enemy); //losing player incrementally rearranges existing blockers
-
+		Player BlockSave(Player enemy); //defender adjusts blockers to avoid immediate death
 		void FullCopy(Player enemy); //copy all decision variables on to next turn during stalemate
 } P1, P2, active, enemy;
 
 string Menu(); //deck select menu
 void StaleMate(); //fast forward thru locked game states
-int Turn(); //main turn cycle
-void Cast(); //play cards
-int FlipCard(); //activate flip cards
-int LandFall(); //play lands
-int Combat(); //Resolve combat
-int Declare(); //set attackers and blockers
-void End(); //end step
-int BlockSave(); //defender adjusts blockers to avoid immediate death
 
 int Player::Debug(){
 	cout << this->Name << "\n";
@@ -191,6 +189,72 @@ int Player::Debug(){
 }
 
 //NEW GAME
+	//set all variables to default
+void Player::ClearVars(){
+	for(int count=0; count<63; count++){
+		this->AltVar[count] = 0;
+		this->Decision[count] = 0;
+		this->Attack[count] = 0;
+		this->Blockers[count] = 0;
+		this->Deck[count] = 0;
+		this->Field[count] = 0;
+		this->Grave[count] = 0;
+		this->Hand[count] = 0;
+		this->Lands[count] = 0;
+		this->Life[count] = 20;
+		this->SkipAttack[count] = 0;
+		for(int i = 0; i<160; i++){
+			this->Fight[count][i] = 0;
+		}
+	}
+	this->Lost = false;
+	this->Chancellor = false;
+	this->DeckFlag = false;
+	this->DStrike = false;
+	this->Dtouch = false;
+	this->Flash = false;
+	this->Flying = false;
+	this->Frost = false;
+	this->FStrike = false;
+	this->Haste = false;
+	this->Hazard = false;
+	this->Hex = false;
+	this->Indestruct = false;
+	this->Infect = false;
+	this->IsCreat = true;
+	this->IsLand = false;
+	this->Link = false;
+	this->Madness = false;
+	this->Reach = false;
+	this->SacEOT = false;
+	this->Slug = false;
+	this->Switch = false;
+	this->Trample = false;
+	this->Unblock = false;
+	this->Vigil = false;
+	this->WinFlag = false; //flag if this player has won the current game
+	this->PStart = 1;
+	this->TStart = 1;
+	this->Power = 1;
+	this->Tough = 1;
+	this->Activate = 0;
+	this->Barrens = 0;
+	this->BigAttack = 0;
+	this->Cost = 0;
+	this->Flip = 0;
+	this->Mammoth = 0;
+	this->MaxAttack = 0;
+	this->MaxBlock = 1;
+	this->MinBlock = 1;
+	this->Mine = 0;
+	this->Pain = 0;
+	this->Pitch = 0;
+	this->SacGen = 0;
+	this->StartHand = 1;
+	this->Token = 0;
+	this->LowLife = 20;
+}
+
 	//Display tournament menu
 string Menu(){
 	int rows = 20;
@@ -842,9 +906,7 @@ Player Player::Setup(Player enemy){
 	this->Grave[0] = 0;
 	this->Grave[1] = 0;
 	if (this->Flash == true && (this->Name == P2.Name || this->Spike > 0)){
-		active = P2;
-		Cast();
-		P2 = active;
+		enemy = this->Cast(enemy);
 	}
 	return enemy;
 }
@@ -1065,7 +1127,7 @@ Player Player::Win(Player enemy){
 					}
 					//check if defender will die with this block pattern, spread blockers one attacker further if able
 					w = 1;
-					BlockSave();
+					enemy = this->BlockSave(enemy);
 				} else { //if attacker dies 1v1, default spread blockers 1v1
 					while ((this->Attack[TC] - (enemy.Blockers[TC] - ActualSkips)) * this->Power >= enemy.Life[TC-1] && ActualSkips > 0){
 						ActualSkips--; //if loser will still die with this block pattern, then keep deploying skipped blocks
@@ -1169,16 +1231,16 @@ Player Player::BlockShuffle(Player enemy){
 }
 
 		//adjust blockers to avoid immediate death
-int BlockSave(){
+Player Player::BlockSave(Player enemy){
 	BlockedAttackers = 0; //recalculate how many attackers are blocked
-	for (Blocker = 1; Blocker <= active.Attack[TC]; Blocker++){
-		if (enemy.Fight[TC][Blocker] > 0 && active.Trample == false){
+	for (Blocker = 1; Blocker <= this->Attack[TC]; Blocker++){
+		if (enemy.Fight[TC][Blocker] > 0 && this->Trample == false){
 			BlockedAttackers++;
 		}
 	}
 	//if defender will die with this block pattern, spread blockers if able
-	while ((active.Attack[TC] - BlockedAttackers) * active.Power >= enemy.Life[TC-w] && enemy.Link == false && BlockedAttackers < enemy.Blockers[TC]){
-		Attacker = active.Attack[TC];
+	while ((this->Attack[TC] - BlockedAttackers) * this->Power >= enemy.Life[TC-w] && enemy.Link == false && BlockedAttackers < enemy.Blockers[TC]){
+		Attacker = this->Attack[TC];
 		while(Attacker > 0){
 			if (enemy.Fight[TC][Attacker] > 1){
 				enemy.Fight[TC][Attacker]--;
@@ -1193,7 +1255,7 @@ int BlockSave(){
 			Attacker--;
 		}
 	}	
-	return 0;
+	return enemy;
 }
 
 		//winner blocks the same
@@ -1262,8 +1324,8 @@ void StaleMate(){ //auto fill repetitive game state onto remaining turns
 											BigHand = P2.StartHand;
 										}
 										for (; T < 61 - BigHand; T++){
-											P1.Next();
-											P2.Next();
+											P1.Next(P2);
+											P2.Next(P1);
 											P1.FullCopy(P2);
 											P2.FullCopy(P1);
 										}
@@ -1555,13 +1617,13 @@ int Player::KillAttacker(Player enemy){
 	}
 }
 
-	//Direct damage PUT BACK AS METHOD?
-int Player::Burning(){
+	//Direct damage
+int Player::Burning(Player enemy){
 	BurnDam = 0;
 	//sac damage lands
 	if (this->SacDam > 0 && this->Lands[T] >= this->Activate){
 		this->Life[T] -= this->Pain;
-		BurnDam += this->Spike;
+		BurnDam += Spike;
 		this->Lands[T] -= 1;
 		this->Grave[T] += 1;
 		if (Report == 1 && Game >= SkipGame){
@@ -1570,7 +1632,7 @@ int Player::Burning(){
 	}
 	//tap damage lands
 	if (this->TapDam > 0 && this->Lands[T] - this->TapLands[T] >= this->TapDam){
-		BurnDam += this->Spike;
+		BurnDam += Spike;
 		this->TapLands[T] += this->TapDam;
 		if (Report == 1 && Game >= SkipGame){
 			cout << this->Name << " deals " << this->Spike << " damage." << "\n";
@@ -1580,7 +1642,7 @@ int Player::Burning(){
 	if (this->Cost > 0 || this->Pitch > 0){
 		if(this->Lands[T] - this->TapLands[T] >= this->Cost && this->Hand[T] >= this->Pitch){
 			this->Life[T] -= this->Pain;
-			BurnDam += this->Spike;
+			BurnDam += Spike;
 			this->TapLands[T] += this->Cost;
 			if (this->Pitch > 0){
 				this->Hand[T] -= this->Pitch;
@@ -1613,34 +1675,34 @@ Player Player::Chance(Player enemy){
 }
 
 	//flip Westvale Abbey
-int FlipCard(){
-	if (active.Flip > 0){
-		if (active.Field[T] >= active.Flip && active.Lands[T] - active.TapLands[T] >= active.TapGen){
+int Player::FlipCard(){
+	if (this->Flip > 0){
+		if (this->Field[T] >= this->Flip && this->Lands[T] - this->TapLands[T] >= this->TapGen){
 			cout << "TRANSFORM! Turn " << T << "\n";
-			active.Field[T] = 1;
-			active.Power = 9;
-			active.Tough = 7;
-			active.Flying = true;
-			active.Reach = true;
-			active.Link = true;
-			active.TapLands[T] += active.TapGen;
-			active.TapGen = 99;
-			active.Flip = 99;
+			this->Field[T] = 1;
+			this->Power = 9;
+			this->Tough = 7;
+			this->Flying = true;
+			this->Reach = true;
+			this->Link = true;
+			this->TapLands[T] += this->TapGen;
+			this->TapGen = 99;
+			this->Flip = 99;
 			FlipTurn = T;
 			return 1;
 		}
-		if ((T <= FlipTurn && active.Field[T] != 1) || (T < FlipTurn && active.Field[T] == 1)){ //check if need to unflip a card
+		if ((T <= FlipTurn && this->Field[T] != 1) || (T < FlipTurn && this->Field[T] == 1)){ //check if need to unflip a card
 			FlipTurn = 0;
 			cout << "unflipping " << T << " " << FlipTurn << " Game " << Game << "\n";
 	//	SkipGame = Game;
-			active.Power = 1;
-			active.Tough = 1;
-			active.Flying = false;
-			active.Reach = false;
-			active.Link = false;
-			active.Haste = false;
-			active.TapGen = 6;
-			active.Flip = 5;		
+			this->Power = 1;
+			this->Tough = 1;
+			this->Flying = false;
+			this->Reach = false;
+			this->Link = false;
+			this->Haste = false;
+			this->TapGen = 6;
+			this->Flip = 5;		
 			return 0;
 		}
 	}
@@ -1648,7 +1710,7 @@ int FlipCard(){
 
 //-GAME PHASES-
 	//TURN CYCLE
-int Turn(){
+int Player::Turn(active, enemy){
 	//display active player gamestate at start of turn
 	if (Report == 1 && Game >= SkipGame){
 		cout << "\n" << active.Name << " Start Turn " << T << "\n";
@@ -1701,7 +1763,7 @@ int Turn(){
 	if (active.Hand[T] > 0){ //if any cards in hand
 		//play lands
 		if (active.IsLand == true || active.Cost > 0){
-			LandFall();
+			active.LandFall(enemy);
 		}
 		//flip card test
 		if (active.Flip > 0 && (active.Field[T] >= active.Flip || (active.Field[T] == active.Flip - 1 && active.Lands[T] >= active.TapGen * 2))){
@@ -1709,13 +1771,13 @@ int Turn(){
 		}
 		//play cards that can contribute to win this turn
 		if (active.Haste == true){
-			Cast();
+			active.Cast(enemy);
 		}
 	}
 	//ATTACK
-	Declare(); //establish attackers and blockers
+	active.Declare(enemy); //establish attackers and blockers
 	if (active.Attack[T] > 0){
-		Combat(); //resolve combat
+		active.Combat(enemy); //resolve combat
 	} else {
 		if (active.Frost == true){ //if frost creature doesn't attack, erase previous kill decisions
 			active.Choice[T] = 0;
@@ -1739,42 +1801,42 @@ int Turn(){
 		cout << "2nd main phase" << "\n";
 	}
 	if (active.Haste == false){
-		Cast();
+		active.Cast(enemy);
 	}
 	//end 
 	if (Report == 1 && Game >= SkipGame){
 		cout << "end step" << "\n";
 	}
-	End();
+	active.End(enemy);
 	return 0;
 }
 
 	//PLAY LAND - MAIN PHASE - Play Land
-int LandFall(){
+int Player::LandFall(Player enemy){
 	//play lands
-	if (active.IsLand == true && (active.Grave[T] >= active.Threshold || enemy.Extract > 0) && active.Hostile == 0){
+	if (this->IsLand == true && (this->Grave[T] >= this->Threshold || enemy.Extract > 0) && this->Hostile == 0){
 		PlayLand = true;
 	}
 	//land backed cards
-	if (active.Lands[T] < active.Cost || enemy.Extract > 0){
+	if (this->Lands[T] < this->Cost || enemy.Extract > 0){
 		PlayLand = true;
 	}
 	//Hostile Desert play land or not
-	if (active.Hostile > 0 && (active.Lands[T] < active.ManLand || active.Grave[T] > active.Lands[T]/active.ManLand)){
+	if (this->Hostile > 0 && (this->Lands[T] < this->ManLand || this->Grave[T] > this->Lands[T]/this->ManLand)){
 		PlayLand = true;
 	}
-	if (active.Flora == 0){
+	if (this->Flora == 0){
 		//cout << T << " turn  lands " << this->Lands[T] << " hand " << this->Hand[T] << "\n";
-		if (active.Lands[T] < active.Cost * 2 && active.Hand[T] > 1){
+		if (this->Lands[T] < this->Cost * 2 && this->Hand[T] > 1){
 			PlayLand = true;
 		}
 		//cout << this->Name << " Lands played " << PlayLand << "\n";
 		//mammoth exception
 		//cout << "mammoth turn " << T << " choice " << this->Choice[T] << " max attack " << this->MaxAttack << " skips " << this->SkipAttack[T] << "\n";
-		if (PlayLand == false && active.Mammoth > 0 && active.MaxAttack - active.SkipAttack[T] > 0){
-			active.Decision[T] = 1;
-			active.Option++;
-			if (active.Choice[T] == 0){
+		if (PlayLand == false && this->Mammoth > 0 && this->MaxAttack - this->SkipAttack[T] > 0){
+			this->Decision[T] = 1;
+			this->Option++;
+			if (this->Choice[T] == 0){
 				if (Game >= SkipGame){
 					cout << "CHOOSE - NO land - game " << Game << " turn " << T << "\n";
 				}
@@ -1785,47 +1847,47 @@ int LandFall(){
 				}
 			}
 		} else {
-			if (active.Mammoth > 0){
-				active.Decision[T] = 0;
-				active.Choice[T] = 0;
+			if (this->Mammoth > 0){
+				this->Decision[T] = 0;
+				this->Choice[T] = 0;
 			}
 		}
 	} else { //Florahedron land drop decisions
-		if (active.Lands[T] < active.Cost * 2 && active.Lands[T] >= active.Cost){
-			active.Option++;
-			active.Decision[T] = 1;
-			if (active.Choice[T] > 0){
+		if (this->Lands[T] < this->Cost * 2 && this->Lands[T] >= this->Cost){
+			this->Option++;
+			this->Decision[T] = 1;
+			if (this->Choice[T] > 0){
 				PlayLand = true;
 			}
 		}
 	}
 	if (PlayLand == true){
 		PlayLand = false;
-		active.Lands[T] ++;
-		active.Hand[T] --;
-		if (active.PainEBT > 0){ //decide whether to play Emeria Shattered Skycave untapped
-			if (active.Lands[T] == active.Cost && active.Life[T] > active.PainEBT){
-				active.Life[T] -= active.PainEBT;
+		this->Lands[T] ++;
+		this->Hand[T] --;
+		if (this->PainEBT > 0){ //decide whether to play Emeria Shattered Skycave untapped
+			if (this->Lands[T] == this->Cost && this->Life[T] > this->PainEBT){
+				this->Life[T] -= this->PainEBT;
 			} else {
-				active.TapLands[T]++;
+				this->TapLands[T] ++;
 			}
 		}
-		active.TapLands[T] += active.LandEBT;
-		active.Power += active.Mammoth;
-		active.Tough += active.Mammoth;
+		TapLands[T] += this->LandEBT;
+		this->Power += this->Mammoth;
+		this->Tough += this->Mammoth;
 		if (Report == 1 && Game >= SkipGame){
-			cout << active.Name << " plays a land";
-			if (active.LandEBT > 0){
+			cout << this->Name << " plays a land";
+			if (this->LandEBT > 0){
 				cout << " tapped." << "\n";
 			} else {
 				cout << "." << "\n";
 			}
 		}
 		//Dwarven Mine
-		if (active.Mine > 0 && active.Lands[T] > active.Mine){
-			active.Field[T] += active.Token;
+		if (this->Mine > 0 && this->Lands[T] > this->Mine){
+			this->Field[T] += this->Token;
 			if (Report == 1 && Game >= SkipGame){
-				cout << active.Name << " makes a token." << "\n";
+				cout << this->Name << " makes a token." << "\n";
 			}			
 		}
 	}
@@ -1833,230 +1895,231 @@ int LandFall(){
 }
 
 	//MAIN PHASE - Play Cards
-void Cast(){
+Player Player::Cast(Player enemy){
 	//cast pitch creatures
-	if (active.Pitch > 0 && active.IsCreat == true){
-		while (active.Hand[T] >= active.Pitch){
-			active.Field[T] += 1;
-			active.Hand[T] -= active.Pitch;
+	if (this->Pitch > 0 && this->IsCreat == true){
+		while (this->Hand[T] >= this->Pitch){
+			this->Field[T] += 1;
+			this->Hand[T] -= this->Pitch;
 			if (Report == 1 && Game >= SkipGame){
-				cout << active.Name << " casts a creature." << "\n";
+				cout << this->Name << " casts a creature." << "\n";
 			}
 		}
 	}
 		//Piranha Marsh/Sunscorched Desert
-	if (active.Piranha > 0){
-		enemy.Life[T] -= active.Piranha;
+	if (this->Piranha > 0){
+		enemy.Life[T] -= this->Piranha;
 		if (Report == 1 && Game >= SkipGame){
-			cout << active.Name << " deals " << active.Piranha << " damage." << "\n";
+			cout << this->Name << " deals " << this->Piranha << " damage." << "\n";
 		}
 	}
 		//Stalking Stones
-	if (active.Stones > 0 && active.Lands[T] >= active.Stones){
-		active.Field[T]++;
-		active.TapCrtr[T]++;
-		active.Lands[T]--;
+	if (this->Stones > 0 && this->Lands[T] >= this->Stones){
+		this->Field[T] += 1;
+		this->TapCrtr[T] += 1;
+		this->Lands[T] -= 1;
 		if (Report == 1 && Game >= SkipGame){
-			cout << active.Name << " makes a creature." << "\n";
+			cout << this->Name << " makes a creature." << "\n";
 		}
 	}
 		//sac land token generators
-	if (active.SacGen > 0 && active.Lands[T] - active.TapLands[T] >= active.Activate && active.Life[T] > active.Pain && enemy.Extract == false){
+	if (this->SacGen > 0 && this->Lands[T] - this->TapLands[T] >= this->Activate && this->Life[T] > this->Pain && enemy.Extract == false){
 			//option to decline pain token
-		if (active.Field[T] == 0 || active.Choice[T] == 0){
-			if (active.Field[T] > 0 && active.Pain > 0){
-				active.Decision[T] = 1;
+		if (this->Field[T] == 0 || this->Choice[T] == 0){
+			if (this->Field[T] > 0 && this->Pain > 0){
+				this->Decision[T] = 1;
 				//cout << "Binary " << T << " true" << "\n";
 			} else {
-				active.Decision[T] = 0;
-				active.Choice[T] = 0;
+				this->Decision[T] = 0;
+				this->Choice[T] = 0;
 			}
-			active.Field[T] += active.Token; //make token
-			active.TapCrtr[T] += active.CardEBT;
-			if (active.SacAll == false){
-				active.Lands[T] -= active.SacGen;
-				active.Grave[T] += active.SacGen;
+			this->Field[T] += this->Token; //make token
+			this->TapCrtr[T] += this->CardEBT;
+			if (SacAll == false){
+				this->Lands[T] -= this->SacGen;
+				this->Grave[T] += this->SacGen;
 			} else {
-				active.Grave[T] += active.Lands[T];
-				active.Lands[T] = 0;
+				this->Grave[T] += this->Lands[T];
+				this->Lands[T] = 0;
 			}
-			active.Life[T] -= active.Pain;
+			this->Life[T] -= this->Pain;
 			if (Report == 1 && Game >= SkipGame){
-				cout << active.Name << " makes " << active.Token << " token." << "\n";
+				cout << this->Name << " makes " << this->Token << " token." << "\n";
 			}
 		} else {
-			active.Decision[T] = 0;
-			active.Choice[T] = 0;
+			this->Decision[T] = 0;
+			this->Choice[T] = 0;
 		}
 	}
 	//flip cards
-	if (FlipCard() == 1){
-		active.Parameters(enemy);
+	if (this->FlipCard() == 1){
+		this->Parameters(enemy);
 	}
 	//tap land token generators
-	if (active.TapGen > 0){
-		while (active.Lands[T] - active.TapLands[T] >= active.TapGen && active.Life[T] > active.Pain){
-			active.Field[T] += active.Token;
-			active.Life[T] -= active.Pain;
-			active.TapLands[T] += active.TapGen;
+	if (this->TapGen > 0){
+		while (this->Lands[T] - this->TapLands[T] >= this->TapGen && this->Life[T] > this->Pain){
+			this->Field[T] += this->Token;
+			this->Life[T] -= this->Pain;
+			this->TapLands[T] += this->TapGen;
 			if (Report == 1 && Game >= SkipGame){
-				cout << active.Name << " makes " << active.Token << " token." << "\n";
+				cout << this->Name << " makes " << this->Token << " token." << "\n";
 			}
-			if (FlipCard() == 1){
-				active.Parameters(enemy);
+			if (this->FlipCard() == 1){
+				this->Parameters(enemy);
 			}
 		}
 	}
 	//sac mill lands
-	if (active.SacMill > 0){
-		if ((enemy.Extract == false && (enemy.GraveCard == false || (enemy.Grave[T] >= enemy.Threshold && enemy.Lands[T] > 0))) || enemy.Deck[T] <= active.SacMill * (active.Lands[T] / active.Activate)){
-			while (active.Lands[T] - active.TapLands[T] >= active.Activate && active.Life[T] > active.Pain){
-				active.Life[T] -= active.Pain;
-				active.Lands[T]--;
-				active.Grave[T]++;
-				active.TapLands[T]++;
-				enemy.Deck[T] -= active.SacMill;
-				enemy.Grave[T] += active.SacMill;
+	if (this->SacMill > 0){
+		if ((enemy.Extract == false && (enemy.GraveCard == false || (enemy.Grave[T] >= enemy.Threshold && enemy.Lands[T] > 0))) || enemy.Deck[T] <= this->SacMill * (this->Lands[T] / this->Activate)){
+			while (this->Lands[T] - this->TapLands[T] >= this->Activate && this->Life[T] > this->Pain){
+				this->Life[T] -= this->Pain;
+				this->Lands[T] --;
+				this->Grave[T] ++;
+				this->TapLands[T] ++;
+				enemy.Deck[T] -= this->SacMill;
+				enemy.Grave[T] += this->SacMill;
 				if (Report == 1 && Game >= SkipGame){
-					cout << active.Name << " mills " << enemy.Name << " " << active.SacMill << "\n";
+					cout << this->Name << " mills " << enemy.Name << " " << this->SacMill << "\n";
 				}
 			}
 		}
 	}
 	//Nether Shadow
-	if (active.Shadow > 0 && active.Grave[T] > active.Shadow){
+	if (this->Shadow > 0 && this->Grave[T] > this->Shadow){
 		if (Report == 1 && Game >= SkipGame){
-			cout << active.Name << " recurs " << active.Grave[T] - active.Shadow << " creature." << "\n";
+			cout << this->Name << " recurs " << this->Grave[T] - this->Shadow << " creature." << "\n";
 		}
-		active.Field[T] += active.Grave[T] - active.Shadow;
-		active.Grave[T] = active.Shadow;
+		this->Field[T] += this->Grave[T] - this->Shadow;
+		this->Grave[T] = this->Shadow;
 	}
 	//Nether Spirit
-	if (active.Spirit > 0 && active.Grave[T] == active.Spirit){
-		active.Field[T]++;
-		active.Grave[T]--;
+	if (this->Spirit > 0 && this->Grave[T] == this->Spirit){
+		this->Field[T] ++;
+		this->Grave[T] = 0;
 		if (Report == 1 && Game >= SkipGame){
-			cout << active.Name << " recurs a creature." << "\n";
+			cout << this->Name << " recurs a creature." << "\n";
 		}
 	}
 	//Chancellor of the Tangle
-	if (active.Tangle > 0 && T == 1 && active.StartHand >= active.Tangle){
-		active.Field[T] = 1;
-		active.Hand[T]--;
+	if (this->Tangle > 0 && T == 1 && this->StartHand >= this->Tangle){
+		this->Field[T] = 1;
+		this->Hand[T]--;
 	}
 	//Turbo Slug
-	if (active.Slug > 0 && (active.Hand[T] + enemy.TapCrtr[T] - enemy.Field[T]) * active.Power >= enemy.Life[T]){
-		active.Field[T] += active.Hand[T];
-		active.Hand[T] = 0;
+	if (this->Slug > 0 && (this->Hand[T] + enemy.TapCrtr[T] - enemy.Field[T]) * this->Power >= enemy.Life[T]){
+		this->Field[T] += this->Hand[T];
+		this->Hand[T] = 0;
 		cout << "Unleash the slugs!" << "\n";
 	}
 	//land backed cards
-	if (active.Cost > 0){
+	if (this->Cost > 0){
 		//cast cards
-		while (active.Lands[T] - active.TapLands[T] >= active.Cost && active.Hand[T] > 0 && active.IsCreat == true){
-			if (active.Token > 0){ //Emeria's Call
+		while (this->Lands[T] - this->TapLands[T] >= this->Cost && this->Hand[T] > 0 && IsCreat == true){
+			if (this->Token > 0){ //Emeria's Call
 				if (enemy.Extract == 0){
-					active.Field[T] += active.Token;
-					active.Grave[T] ++;
+					this->Field[T] += this->Token;
+					this->Grave[T] ++;
 					if (Report == 1 && Game >= SkipGame){
-						cout << active.Name << " makes " << active.Token << " tokens." << "\n";
+						cout << this->Name << " makes " << this->Token << " tokens." << "\n";
 					}
 				}
 			} else { //creatures
-				active.Field[T]++;
-				active.Life[T] -= active.Pain;
+				this->Field[T] += 1;
+				this->Life[T] -= this->Pain;
 				if (Report == 1 && Game >= SkipGame){
-					cout << active.Name << " casts a creature." << "\n";
+					cout << this->Name << " casts a creature." << "\n";
 				}
 			}
-			active.Hand[T]--;
-			active.TapLands[T] += active.Cost;
+			this->Hand[T] -= 1;
+			this->TapLands[T] += this->Cost;
 		}
 	}
 	//determine max direct damage can be dealt this turn
-	active.MaxBurn[T] = 0;
-	if (active.TapDam > 0 || (active.SacDam > 0 && active.Grave[T] >= active.Threshold)){
-		active.MaxBurn[T] = active.Spike * ((active.Lands[T] - active.TapLands[T]) / (active.TapDam + active.SacDam));
-		if (enemy.Extract > 0 && active.TapDam == 0 && active.MaxBurn[T] * 2 < enemy.Life[T]){
-			active.MaxBurn[T] = 0;
+	this->MaxBurn[T] = 0;
+	if (this->TapDam > 0 || (this->SacDam > 0 && this->Grave[T] >= this->Threshold)){
+		this->MaxBurn[T] = this->Spike * ((this->Lands[T] - this->TapLands[T]) / (this->TapDam + this->SacDam));
+		if (enemy.Extract > 0 && this->TapDam == 0 && this->MaxBurn[T] * 2 < enemy.Life[T]){
+			this->MaxBurn[T] = 0;
 		}
 	}
-	if (active.Cost > 0){
-		if (active.Hand[T] >= (active.Lands[T] - active.TapLands[T]) / active.Cost){
-			active.MaxBurn[T] = active.Spike * ((active.Lands[T] - active.TapLands[T]) / active.Cost);
+	if (this->Cost > 0){
+		if (this->Hand[T] >= (this->Lands[T] - this->TapLands[T]) / this->Cost){
+			this->MaxBurn[T] = this->Spike * ((this->Lands[T] - this->TapLands[T]) / this->Cost);
 		} else {
-			active.MaxBurn[T] = active.Spike * active.Hand[T];
+			this->MaxBurn[T] = this->Spike * this->Hand[T];
 		}
-		if (enemy.Extract > 0 && active.MaxBurn[T] < enemy.Life[T]){
-			active.MaxBurn[T] = 0;
+		if (enemy.Extract > 0 && this->MaxBurn[T] < enemy.Life[T]){
+			this->MaxBurn[T] = 0;
 		}
 	}
-	if (active.Pitch > 0){
-		active.MaxBurn[T] = active.Spike * (active.Hand[T] / active.Pitch);
-		if (enemy.Extract > 0 && active.MaxBurn[T] < enemy.Life[T]){
-			active.MaxBurn[T] = 0;
+	if (this->Pitch > 0){
+		this->MaxBurn[T] = this->Spike * (this->Hand[T] / this->Pitch);
+		if (enemy.Extract > 0 && this->MaxBurn[T] < enemy.Life[T]){
+			this->MaxBurn[T] = 0;
 		}
 	}
 	//if can kill opponent, do so
-	if (active.MaxBurn[T] >= enemy.Life[T] || (enemy.Extract > 0 && active.MaxBurn[T] >= enemy.Life[T] - enemy.Pain) || (active.Spike > 0 && active.Burn == 0) || (enemy.Chancellor == true && enemy.Spike > 0) || enemy.Slug == true){
-		while (active.MaxBurn[T] > 0){
-			enemy.Life[T] -= active.Burning();
+	if (this->MaxBurn[T] >= enemy.Life[T] || (enemy.Extract > 0 && this->MaxBurn[T] >= enemy.Life[T] - enemy.Pain) || (this->Spike > 0 && this->Burn == 0) || (enemy.Chancellor == true && enemy.Spike > 0) || enemy.Slug == true){
+		while (MaxBurn[T] > 0){
+			enemy.Life[T] -= this->Burning(enemy);
 		}
 	}
 	//enemy burns active player creatures
 	StrikeDead = 0;
-	while (enemy.MaxBurn[T] >= active.Tough && active.Field[T] > 0 && BurnLost == true){
-		enemy.Burning(); //PROBLEM
-		if (active.KillAttacker(enemy) == 0){
+	while (enemy.MaxBurn[T] >= this->Tough && this->Field[T] > 0 && BurnLost == true){
+		enemy.Burning(enemy);
+		if (this->KillAttacker(enemy) == 0){
 			StrikeDead++;
 			AttackDam = 0;
 		}
-		if (Report == 1 && Game >=SkipGame && active.ManLand == 0){
-			cout << "remaining creatures " << active.Field[T] << "\n";
+		if (Report == 1 && Game >=SkipGame && this->ManLand == 0){
+			cout << "remaining creatures " << this->Field[T] << "\n";
 		}
 	}
 	//manlands
-	if (active.ManLand > 0){
-		active.MaxAttack = (active.Lands[T] - active.TapLands[T]) / active.ManLand;
-		if (active.Barrens > 0 && active.Lands[T] - active.TapLands[T] == active.ManLand - 1){
-			active.PCounters[T][1] += active.Barrens;
-			active.TapLands[T] += active.ManLand - 1; // -1? deal w vigilance here?
+	if (this->ManLand > 0){
+		this->MaxAttack = (this->Lands[T] - this->TapLands[T]) / this->ManLand;
+		if (this->Barrens > 0 && this->Lands[T] - this->TapLands[T] == this->ManLand - 1){
+			this->PCounters[T][1] += this->Barrens;
+			this->TapLands[T] += this->ManLand - 1;
 		}
 	}
-	if (active.Haste == true && active.ManLand == 0){
-		if (active.Ichorid > 0){
-			active.MaxAttack = active.Grave[T] / active.Ichorid;
+	if (this->Haste == true && this->ManLand == 0){
+		if (this->Ichorid > 0){
+			this->MaxAttack = this->Grave[T] / this->Ichorid;
 		} else {
-			if (active.TapCrtr[T] > active.Field[T]) {
-				active.TapCrtr[T] = active.Field[T];
+			if (this->TapCrtr[T] > this->Field[T]) {
+				this->TapCrtr[T] = this->Field[T];
 			}
-			active.MaxAttack = active.Field[T] - active.TapCrtr[T];
+			this->MaxAttack = this->Field[T] - this->TapCrtr[T];
 		}
 	}
-	if (active.Hostile > 0 && active.MaxAttack > active.Grave[T] / active.Hostile){
-		active.MaxAttack = active.Grave[T] / active.Hostile;
+	if (this->Hostile > 0 && this->MaxAttack > this->Grave[T] / this->Hostile){
+		this->MaxAttack = this->Grave[T] / this->Hostile;
 	}
+	return enemy;
 }
 
 	//DECLARE Attackers and Blockers
-int Declare(){
+Player Player::Declare(Player enemy){
 	//set Urza's saga p/t
-	if (active.Team == true){
-		active.Power = active.Field[T];
-		active.Tough = active.Power;
+	if (this->Team == true){
+		this->Power = this->Field[T];
+		this->Tough = this->Power;
 	}
 	if (enemy.Team == true){
 		enemy.Power = enemy.Field[T];
 		enemy.Tough = enemy.Power;
 	}
 	//get # attackers
-	active.Attack[T] = active.MaxAttack - active.SkipAttack[T];
-	if (active.Attack[T] < 0){
+	this->Attack[T] = this->MaxAttack - this->SkipAttack[T];
+	if (this->Attack[T] < 0){
 		//cout << "Skip Attack Error game " << Game << "\n";
-		active.Attack[T] = 0;
-		active.SkipAttack[T] = active.MaxAttack;
+		this->Attack[T] = 0;
+		this->SkipAttack[T] = this->MaxAttack;
 	}
-	if (active.Unblock == false){ //get enemy available blockers
+	if (this->Unblock == false){ //get enemy available blockers
 		if (enemy.ManLand > 0){
 			enemy.Blockers[T] = (enemy.Lands[T] - enemy.TapLands[T]) / enemy.ManLand;
 			if (enemy.Hostile > 0 && enemy.Blockers[T] > enemy.Grave[T] / enemy.Hostile){
@@ -2069,133 +2132,133 @@ int Declare(){
 		enemy.Blockers[T] = 0;
 	}
 	//if max attack can't kill and active player will die on swingback, attack less
-	if (active.Attack[T] > 0 && (active.Attack[T] - (enemy.Blockers[T] / active.MinBlock)) * active.Power < enemy.Life[T]){
-		if (active.Trample == false && active.Vigil == false && active.SacEOT == false && active.VarPT == false && active.Link == false && active.Pain < 1){ //ignore relevant combat abilities
+	if (this->Attack[T] > 0 && (this->Attack[T] - (enemy.Blockers[T] / this->MinBlock)) * this->Power < enemy.Life[T]){
+		if (this->Trample == false && this->Vigil == false && this->SacEOT == false && this->VarPT == false && this->Link == false && this->Pain < 1){ //ignore relevant combat abilities
 			if (enemy.ManLand > 0){ //check enemy damage from next attack w their current resources
 				Attacker = (enemy.Lands[T] / enemy.ManLand);
 			} else {
 				Attacker = enemy.Field[T];
 			}
-			while(active.Attack[T] > 0 && (Attacker - active.SkipAttack[T]) * enemy.Power >= active.Life[T]){ 
+			while(this->Attack[T] > 0 && (Attacker - this->SkipAttack[T]) * enemy.Power >= this->Life[T]){ 
 			//if enemy prob has onboard lethal, and you prob don't, attack less if able
-				active.SkipAttack[T]++;
-				active.Attack[T]--;
+				this->SkipAttack[T]++;
+				this->Attack[T]--;
 			//	SkipGame = Game;
 			//	cout << "killing you";
 			}
 		}
 	}
 	//skip attacks if will neither change life totals nor kill any blockers
-	if (active.Link == false && active.Trample == false && enemy.Chump == false && enemy.Blockers[T] / active.MinBlock >= active.Attack[T]){
-		active.SkipAttack[T] = active.MaxAttack;
-		active.Attack[T] = 0;
-		if (active.Mammoth > 0 || active.Frost == true){
-			active.Choice[T] = 0;
-			active.Decision[T] = 0; //causing problems?
+	if (this->Link == false && this->Trample == false && enemy.Chump == false && enemy.Blockers[T] / this->MinBlock >= this->Attack[T]){
+		this->SkipAttack[T] = this->MaxAttack;
+		this->Attack[T] = 0;
+		if (this->Mammoth > 0 || this->Frost == true){
+			this->Choice[T] = 0;
+			this->Decision[T] = 0; //causing problems?
 		}
 	}
 	//exile graveyard costs to attack
-	active.Grave[T] -= active.Attack[T] * active.Hostile;
-	if (active.Ichorid > 0){
-		active.Grave[T] -= active.Attack[T] * active.Ichorid;
-		active.Field[T] += active.Attack[T];
+	this->Grave[T] -= this->Attack[T] * this->Hostile;
+	if (this->Ichorid > 0){
+		this->Grave[T] -= this->Attack[T] * this->Ichorid;
+		this->Field[T] += this->Attack[T];
 	}
-	enemy.Grave[T] -= active.Attack[T] * active.Tyrant;
+	enemy.Grave[T] -= this->Attack[T] * this->Tyrant;
 	if (enemy.Grave[T] < 0) {
 		enemy.Grave[T] = 0;
 	}
 	//pump Crawling Barrens and Raging Ravine 
-	if (active.Attack[T] > 0 && (active.Barrens > 0 || active.Rage > 0)){
-		for(Attacker = 1; Attacker <= active.Attack[T]; Attacker++){
-			active.PCounters[T][Attacker] += active.Barrens + active.Rage;
+	if (this->Attack[T] > 0 && (this->Barrens > 0 || this->Rage > 0)){
+		for(Attacker = 1; Attacker <= this->Attack[T]; Attacker++){
+			this->PCounters[T][Attacker] += this->Barrens + this->Rage;
 		}
 		//this->Debug();
 		//if exactly 4 excess lands WHAT IF MULTIPLE ATTACKERS W DIF COUNTERS
-		if (active.Lands[T] - active.TapLands[T] - active.Attack[T] * active.ManLand == active.ManLand - 1){
-			active.PCounters[T][1] += active.Barrens + active.Rage;
+		if (this->Lands[T] - this->TapLands[T] - this->Attack[T] * this->ManLand == this->ManLand - 1){
+			this->PCounters[T][1] += this->Barrens + this->Rage;
 		}
 		//if 5+ unused lands, pump now or block later
 	}
 	//pump Blackbloom Rogue
-	if (active.RogueThresh > 0){
-		if (enemy.Grave[T] >= active.RogueThresh){
+	if (this->RogueThresh > 0){
+		if (enemy.Grave[T] >= this->RogueThresh){
 			if (Report == 1){
 				cout << "GOING ROGUE" << "\n";
 			}
-			active.Power = active.PStart + active.RogueBonus;
+			this->Power = this->PStart + this->RogueBonus;
 		} else {
-			active.Power = active.PStart;
+			this->Power = this->PStart;
 		}
 	}
 	if (enemy.RogueThresh > 0){
-		if (active.Grave[T] >= enemy.RogueThresh){
+		if (this->Grave[T] >= enemy.RogueThresh){
 			enemy.Power = enemy.PStart + enemy.RogueBonus;
 		} else {
 			enemy.Power = enemy.PStart;
 		}
 	}
-	active.Parameters(enemy);
+	enemy = this->Parameters(enemy);
 	//Determine enemy blocking pattern
 	//P2 clear enemy blocking pattern and P1 same, unless this is first turn of reset
-	if ((active.Name == P1.Name && active.Lost == false && enemy.AttackReset == false) || active.Name == P2.Name){
-		for(Attacker = 0; Attacker <= active.Attack[T]+2; Attacker++){ //clear block pattern
+	if ((this->Name == P1.Name && this->Lost == false && enemy.AttackReset == false) || this->Name == P2.Name){
+		for(Attacker = 0; Attacker <= this->Attack[T]+2; Attacker++){ //clear block pattern
 			enemy.Fight[T][Attacker] = 0;
 		}
 		//default blocks
-		if (active.Attack[T] > 0){
+		if (this->Attack[T] > 0){
 			if (enemy.Chump == true){ //if these blockers die in combat, then default all blockers skip
-				enemy.Fight[T][active.Attack[T]+1] = enemy.Blockers[T];
+				enemy.Fight[T][this->Attack[T]+1] = enemy.Blockers[T];
 				Attacker = 1; //if defender will die if skips all blocks, then deploy blockers if able
-				while ((active.Attack[T] - Attacker + 1) * active.Power >= enemy.Life[T] && enemy.Fight[T][active.Attack[T]+1] > 0 && enemy.Link == false){
-					enemy.Fight[T][active.Attack[T]+1]--;
+				while ((this->Attack[T] - Attacker + 1) * this->Power >= enemy.Life[T] && enemy.Fight[T][this->Attack[T]+1] > 0 && enemy.Link == false){
+					enemy.Fight[T][this->Attack[T]+1]--;
 					enemy.Fight[T][Attacker] = 1;
 					Attacker++;
 				}
 			} else { //these blockers survive combat
-				if (active.Multi == false){ //if each attacker is killed by one blocker, then block even spread
+				if (this->Multi == false){ //if each attacker is killed by one blocker, then block even spread
 					for (Blocker = 1; Blocker <= enemy.Blockers[T]; Blocker++){
-						if (Blocker <= active.Attack[T]){
+						if (Blocker <= this->Attack[T]){
 							enemy.Fight[T][Blocker] = 1;
 						}
 					}
 					Blocker--;
-					if (Blocker < active.Attack[T]){
-						Blocker = active.Attack[T];
+					if (Blocker < this->Attack[T]){
+						Blocker = this->Attack[T];
 					}
-					enemy.Fight[T][active.Attack[T]+1] = Blocker - active.Attack[T]; //excess blockers auto-skip
+					enemy.Fight[T][this->Attack[T]+1] = Blocker - this->Attack[T]; //excess blockers auto-skip
 				} else { //if each attacker requires multiple blockers to kill, then all blockers on 1st attacker
 					enemy.Fight[T][1] = enemy.Blockers[T];
-					for (Attacker = 1; Attacker <= active.Attack[T]; Attacker++){ //shift blockers if over max necessary block
-						if (enemy.Fight[T][Attacker] > active.MaxBlock){
-							enemy.Fight[T][Attacker + 1] = enemy.Fight[T][Attacker] - active.MaxBlock;
-							enemy.Fight[T][Attacker] = active.MaxBlock;
+					for (Attacker = 1; Attacker <= this->Attack[T]; Attacker++){ //shift blockers if over max necessary block
+						if (enemy.Fight[T][Attacker] > this->MaxBlock){
+							enemy.Fight[T][Attacker + 1] = enemy.Fight[T][Attacker] - this->MaxBlock;
+							enemy.Fight[T][Attacker] = this->MaxBlock;
 						}
 					}
 					//check if defender will die w this block pattern and adjust accordingly if able
 					TC = T;
 					w = 0;
-					BlockSave();
+					enemy = this->BlockSave(enemy);
 				}
 			}
 		}
 	}
 	//if enemy lost last game, retrieve adjusted block pattern saved in next turn
-	if (enemy.Lost == true || active.ChangeMind == true){ //changemind still a thing?
-		for(int count = active.Attack[T]+1; count>0; count--){
+	if (enemy.Lost == true || this->ChangeMind == true){
+		for(int count = this->Attack[T]+1; count>0; count--){
 			enemy.Fight[T][count] = enemy.Fight[T+1][count];
 			enemy.Fight[T+1][count] = 0;
 		}
 	}
 	//tap attackers and lands activating manlands
-	if (active.ManLand > 0){
-		active.TapLands[T] += (active.Attack[T] * active.ManLand);
+	if (this->ManLand > 0){
+		this->TapLands[T] += (this->Attack[T] * this->ManLand);
 	} else {
-		active.TapCrtr[T] += active.Attack[T];
+		this->TapCrtr[T] += this->Attack[T];
 	}
-	if (active.Vigil == true){
-		active.TapCrtr[T] -= active.Attack[T];
-		if (active.ManLand > 0){
-			active.TapLands[T] -= active.Attack[T];
+	if (this->Vigil == true){
+		this->TapCrtr[T] -= this->Attack[T];
+		if (this->ManLand > 0){
+			this->TapLands[T] -= this->Attack[T];
 		}
 	}
 	if (enemy.ManLand > 0){
@@ -2203,65 +2266,65 @@ int Declare(){
 		//pump blocking Barrens
 		if (enemy.Barrens > 0){
 			for (BlockCheck = 1; BlockCheck <= enemy.Blockers[T]; BlockCheck++){
-				enemy.PCounters[T][BlockCheck] += enemy.Barrens;
+				enemy.PCounters[T][BlockCheck] += this->Barrens;
 			}
 		}
 	}
-	//track largest attack for report screen MOVE TO SUMMARY()
-	active.BigAttack = 0;
+	//track largest attack for report screen MOVE TO REPORT FUNC
+	this->BigAttack = 0;
 	for (int count = 1; count <= T ; count++){
-		if (active.Attack[count] > active.BigAttack){
-			active.BigAttack = active.Attack[count];
+		if (this->Attack[count] > this->BigAttack){
+			this->BigAttack = this->Attack[count];
 		}
 	}
 	//attack report
 	if (Report == 1 && Game >= SkipGame){ 
-		cout << active.MaxAttack << " Max attacks" << "\n";
-		cout << active.Attack[T] << " Attackers" << "\n";
-		cout << active.SkipAttack[T] << " Skip Attacks" << "\n";
+		cout << this->MaxAttack << " Max attacks" << "\n";
+		cout << this->Attack[T] << " Attackers" << "\n";
+		cout << this->SkipAttack[T] << " Skip Attacks" << "\n";
 		cout << enemy.Blockers[T] << " Enemy Blockers" << "\n";
-		if (active.Attack[T] > 0){
+		if (this->Attack[T] > 0){
 			cout << " S ";
-			for (Attacker = 1; Attacker <= active.Attack[T]; Attacker++){
+			for (Attacker = 1; Attacker <= this->Attack[T]; Attacker++){
 				cout << " A" << Attacker;
 			}
 			cout << "\n";
-			for (Blocker = active.Attack[T] + 1; Blocker > 0; Blocker--){
+			for (Blocker = this->Attack[T] + 1; Blocker > 0; Blocker--){
 				cout << " " << enemy.Fight[T][Blocker] << " ";
 			}
 			cout << "\n";
 		}
 		cout << "Enemy life was " << enemy.Life[T] << "\n";
 	}
-	return 0;
+	return enemy;
 }
 
 	//RESOLVE COMBAT
-int Combat(){
+Player Player::Combat(Player enemy){
 	//resolve attacks
-	for (Attacker = 1; Attacker <= active.Attack[T]; Attacker++){ //check each attacker outcome
-		if (active.Barrens > 0 || active.Rage > 0){
-			active.Power = active.PStart + active.PCounters[T][Attacker];
-			active.Tough = active.TStart + active.PCounters[T][Attacker];
+	for (Attacker = 1; Attacker <= this->Attack[T]; Attacker++){ //check each attacker outcome
+		if (this->Barrens > 0 || this->Rage > 0){
+			this->Power = this->PStart + this->PCounters[T][Attacker];
+			this->Tough = this->TStart + this->PCounters[T][Attacker];
 		}
-		AttackDam = active.Power; //damage from attackers this exchange is reset
+		AttackDam = this->Power; //damage from attackers this exchange is reset
 		BlockDam = 0; //damage from blockers this exchange is reset
 		StrikeDead = 0; //blockers killed by striker is reset
 		Survivor = false;
-		if (enemy.Fight[T][Attacker] >= active.MinBlock){ //legal BLOCKER(s) found
+		if (enemy.Fight[T][Attacker] >= this->MinBlock){ //legal BLOCKER(s) found
 			BlockDam = enemy.Fight[T][Attacker] * enemy.Power;
 			//First Strike
 				//non-strike attacker vs strike blocker
-			if (active.FStrike == false && active.DStrike == false && (enemy.FStrike == true || enemy.DStrike == true)){
-				if (BlockDam >= active.Tough){ // if strike blockers deal lethal,
-					if (active.KillAttacker(enemy) == 0){ //kill attacker and if attacker doesnt regen, erase attacker damage
+			if (this->FStrike == false && this->DStrike == false && (enemy.FStrike == true || enemy.DStrike == true)){
+				if (BlockDam >= this->Tough){ // if strike blockers deal lethal,
+					if (this->KillAttacker(enemy) == 0){ //kill attacker and if attacker doesnt regen, erase attacker damage
 						AttackDam = 0;
 						BlockDam = 0;
 					}
 				}
 			}
 				//strike attacker vs non-strike blocker
-			if ((active.FStrike == true || active.DStrike == true) && enemy.FStrike == false && enemy.DStrike == false){
+			if ((this->FStrike == true || this->DStrike == true) && enemy.FStrike == false && enemy.DStrike == false){
 				Blocker = 1;
 				while (AttackDam >= enemy.Tough && Blocker <= enemy.Fight[T][Attacker]){ //try to kill blockers
 					Blocker++;
@@ -2273,37 +2336,37 @@ int Combat(){
 				}
 			}
 			//Regular Combat
-			if (active.DStrike == true){ //if dstrike attacker in reg combat, deal power again
-				AttackDam += active.Power;
+			if (this->DStrike == true){ //if dstrike attacker in reg combat, deal power again
+				AttackDam += this->Power;
 			}
 			if (enemy.DStrike == true){ //if dstrike blocker(s) in reg combat, double total damage
 				BlockDam *= 2;
 			}
-			if (enemy.Switch == true && enemy.Tough > enemy.Power && (active.Power >= enemy.Tough || active.Dtouch == true)){
+			if (enemy.Switch == true && enemy.Tough > enemy.Power && (this->Power >= enemy.Tough || this->Dtouch == true)){
 				//switcheroo for attacker + blocker
 			}
-			if (BlockDam >= active.Tough || (enemy.Dtouch == true && BlockDam > 0)){ //if attacker takes lethal,
-				if (active.KillAttacker(enemy) == 1){ //attacker dies unless regen
+			if (BlockDam >= this->Tough || (enemy.Dtouch == true && BlockDam > 0)){ //if attacker takes lethal,
+				if (this->KillAttacker(enemy) == 1){ //attacker dies unless regen
 					//if attacker regens, trigger blocker's frost
 					if (enemy.Frost == true){
 						enemy.Frozen[T]++;
 						cout << "freeze - E " << enemy.Frozen[T] << "\n";
 					}
 				}
-				if (active.Frost == true){ //if dead attacker has frost and is multiblocked and can only kill 1 blocker
-					if (enemy.Fight[T][Attacker] > 1 && active.Power >= enemy.Tough && active.Power < enemy.Tough * 2){
-						active.Option++;
+				if (this->Frost == true){ //if dead attacker has frost and is multiblocked and can only kill 1 blocker
+					if (enemy.Fight[T][Attacker] > 1 && this->Power >= enemy.Tough && this->Power < enemy.Tough * 2){
+						this->Option++;
 						if (Game >+ SkipGame){
 						
 						cout << "Option++ game " << Game << " turn " << T << "\n";
 						}
-						if (active.Option > active.Decision[T]){
-							active.Decision[T]++; //create option to freeze multiples instead of kill one
+						if (this->Option > this->Decision[T]){
+							this->Decision[T]++; //create option to freeze multiples instead of kill one
 						}
 					}
 				}
-				if (active.Switch == true && active.Power < active.Tough){ //if attacking fumarole takes lethal, switch
-					AttackDam = active.Tough;
+				if (this->Switch == true && this->Power < this->Tough){ //if attacking fumarole takes lethal, switch
+					AttackDam = this->Tough;
 				}
 			} else { //attacker lives, trigger blocker's frost
 				Survivor = true;
@@ -2313,26 +2376,26 @@ int Combat(){
 				}
 			}
 			//deal trample
-			if (active.Trample == true && AttackDam > enemy.Fight[T][Attacker] * enemy.Tough){
-				enemy.Life[T] -= active.Power - (enemy.Fight[T][Attacker] * enemy.Tough);
+			if (this->Trample == true && AttackDam > enemy.Fight[T][Attacker] * enemy.Tough){
+				enemy.Life[T] -= this->Power - (enemy.Fight[T][Attacker] * enemy.Tough);
 			}
 			//gain block link
 			if (enemy.Link == true){
 				enemy.Life[T] += BlockDam;
 			}
 			//gain attack link
-			if(active.Link == true){
-				active.Life[T] += AttackDam;
+			if(this->Link == true){
+				this->Life[T] += AttackDam;
 			}
 			//resolve blockers of this attacker (omitting 1strike deaths)
 			for(Blocker = 1; Blocker <= enemy.Fight[T][Attacker] - StrikeDead; Blocker++){ //for each blocker against this attacker
-				if (enemy.Fight[T][Blocker] >= active.MinBlock){ // if actually blocking,
+				if (enemy.Fight[T][Blocker] >= this->MinBlock){ // if actually blocking,
 					enemy.Grave[T] -= enemy.Hostile; //pay graveyard costs to block
 				}
 				//check if attacker has killed a blocker
-				if ((AttackDam >= enemy.Tough || (active.Dtouch == true && AttackDam > 0)) && (active.Frost == false || active.Choice[T] == 0 || active.Choice[T] < active.Option)){
+				if ((AttackDam >= enemy.Tough || (this->Dtouch == true && AttackDam > 0)) && (this->Frost == false || this->Choice[T] == 0 || this->Choice[T] < this->Option)){
 					//dead blocker absorbs damage
-					if (active.Dtouch == false){
+					if (this->Dtouch == false){
 						AttackDam -= enemy.Tough;
 					} else {
 						AttackDam--;
@@ -2342,9 +2405,9 @@ int Combat(){
 				//	}
 					//if blocker regens vs frost, freeze blocker
 					if (enemy.KillAttacker(enemy) == 1){
-						if (active.Frost == true){
-							active.Frozen[T]++;
-							cout << "freeze - B " << active.Frozen[T] << "\n";
+						if (this->Frost == true){
+							this->Frozen[T]++;
+							cout << "freeze - B " << this->Frozen[T] << "\n";
 						}
 					}
 				//	if (enemy.Switch == true && enemy.Power > enemy.Tough){
@@ -2353,13 +2416,13 @@ int Combat(){
 				//	}
 					Survivor = false;
 				} else { //this blocker lives
-					if (active.Frost == true && AttackDam == active.Power){ //freeze surviving blockers
-						if (active.Power >= enemy.Fight[T][Attacker]){
-							active.Frozen[T] += enemy.Fight[T][Attacker];
-							cout << "freeze - C " << active.Frozen[T] << " choice " << active.Choice[T] << " of " << active.Option << "\n";
+					if (this->Frost == true && AttackDam == this->Power){ //freeze surviving blockers
+						if (this->Power >= enemy.Fight[T][Attacker]){
+							this->Frozen[T] += enemy.Fight[T][Attacker];
+							cout << "freeze - C " << this->Frozen[T] << " choice " << this->Choice[T] << " of " << this->Option << "\n";
 						} else {
-							active.Frozen[T] += active.Power;
-							cout << "freeze - D - " << active.Frozen[T] << " turn " << T << "\n";
+							this->Frozen[T] += this->Power;
+							cout << "freeze - D - " << this->Frozen[T] << " turn " << T << "\n";
 						}
 						AttackDam--;
 					}
@@ -2367,38 +2430,38 @@ int Combat(){
 			}
 			if (Survivor == true){ //no one died in this block exchange
 			//	cout << ActivePlayer << " BOUNCE turn " << T << "\n";
-				if (active.Switch == true){ //create trade v bounce option for fumarole
-					active.Option++;
+				if (this->Switch == true){ //create trade v bounce option for fumarole
+					this->Option++;
 				}
 			}
 		} else { //this attacker is unblocked
 			//burn attackers
 			OnFire = 0;
-			if (enemy.MaxBurn[T] >= active.Tough && StrikeDead < active.Attack[T] && BurnLost == true){
-				while (enemy.MaxBurn[T] > 0 && OnFire < active.Tough){
-					OnFire += enemy.Burning();
-					if (OnFire >= active.Tough){ //attacker is toast
-						if (active.KillAttacker(enemy) == 0){ //if attacker doesn't regen, erase their damage
+			if (enemy.MaxBurn[T] >= this->Tough && StrikeDead < this->Attack[T] && BurnLost == true){
+				while (enemy.MaxBurn[T] > 0 && OnFire < this->Tough){
+					OnFire += enemy.Burning(enemy);
+					if (OnFire >= this->Tough){ //attacker is toast
+						if (this->KillAttacker(enemy) == 0){ //if attacker doesn't regen, erase their damage
 							StrikeDead++;
 							AttackDam = 0;
 						}
 					}
 				}
 			}
-			if (active.Infect == false){ //deal unblocked damage
-				if (active.Switch == true && active.Tough > active.Power && active.Power > enemy.MaxBurn[T]){
-					enemy.Life[T] -= active.Tough; //You let this fumarole just wander thru again
+			if (this->Infect == false){ //deal unblocked damage
+				if (this->Switch == true && this->Tough > this->Power && this->Power > enemy.MaxBurn[T]){
+					enemy.Life[T] -= this->Tough; //You let this fumarole just wander thru again
 				} else { //regular damage
 					enemy.Life[T] -= AttackDam;
 				}
 			} else { //poison counters
-				active.Poison[T] += AttackDam;
+				this->Poison[T] += AttackDam;
 			}
-			if (active.DStrike == true){ //deal doublestrike damage
+			if (this->DStrike == true){ //deal doublestrike damage
 				enemy.Life[T] -= AttackDam;
 			}
-			if(active.Link == true){ //gain attacker lifelink
-				active.Life[T] += AttackDam;
+			if(this->Link == true){ //gain attacker lifelink
+				this->Life[T] += AttackDam;
 			}
 		}
 	}
@@ -2409,49 +2472,49 @@ int Combat(){
 		enemy.LowLife = enemy.Life[T];
 	}
 	//if previously expected number of alt decisions is more than actually encountered this turn, then reduce decision range to that #
-	if (active.Decision[T] > active.Option){
-		active.Decision[T] = active.Option;
+	if (this->Decision[T] > this->Option){
+		this->Decision[T] = this->Option;
 	}
-	return 0;
+	return enemy;
 }
 
 	//END STEP
-void End(){
+Player Player::End(Player enemy){
 	//enemy burn deck targets you
 	while (enemy.MaxBurn[T] > 0){
-		active.Life[T] -= enemy.Burning();
+		this->Life[T] -= enemy.Burning(enemy);
 		if (Report == 1 && Game >= SkipGame){
-			cout << active.Name << " life is burned to " << active.Life[T] << "\n";
+			cout << this->Name << " life is now " << this->Life[T] << "\n";
 		}
 	}
 	//discard
-	if (active.Hand[T] > 7){
-		active.Hand[T] = 7;
-		if (active.Madness == true){
-			active.Field[T] ++;
+	if (this->Hand[T] > 7){
+		this->Hand[T] = 7;
+		if (this->Madness == true){
+			this->Field[T] += 1;
 			if (Report == 1 && Game >= SkipGame){
-				cout << active.Name << " plays a madness creature." << "\n";
+				cout << this->Name << " plays a madness creature." << "\n";
 			}
 		} else {
-			active.Grave[T]++;
+			this->Grave[T] += 1;
 			if (Report == 1 && Game >= SkipGame){
-				cout << active.Name << " discards." << "\n";
+				cout << this->Name << " discards." << "\n";
 			}
 		}
 	}
-	if (active.Mammoth > 0){	//shrink landfall
-		active.Power = active.PStart;
-		active.Tough = active.TStart;
+	if (this->Mammoth > 0){	//shrink landfall
+		this->Power = this->PStart;
+		this->Tough = this->TStart;
 	}
-	if (active.SacEOT == true){	//kill sac-eot creatures
-		active.Grave[T] += active.Field[T];
-		active.Field[T] = 0;
+	if (this->SacEOT == true){	//kill sac-eot creatures
+		this->Grave[T] += this->Field[T];
+		this->Field[T] = 0;
 	}
 	//enemy checks for Surgical Extraction target
-	if (enemy.Extract > 0 && enemy.Hand[T] > 0 && enemy.Life[T] > enemy.Pain && active.Grave[T] >= enemy.Extract){
-		active.Hand[T] = 0;
-		active.Grave[T] = 0;
-		active.Deck[T] = 0;
+	if (enemy.Extract > 0 && enemy.Hand[T] > 0 && enemy.Life[T] > enemy.Pain && this->Grave[T] >= enemy.Extract){
+		this->Hand[T] = 0;
+		this->Grave[T] = 0;
+		this->Deck[T] = 0;
 		enemy.Life[T] -= enemy.Pain;
 		enemy.Grave[T] += 1;
 		enemy.Hand[T] -= 1;
@@ -2463,27 +2526,28 @@ void End(){
 	Attacker = 12;
 	while (Attacker > 0){
 		Attacker--;
-		if (active.PCounters[T][Attacker] > 0){
+		if (this->PCounters[T][Attacker] > 0){
 			for(int count = Attacker - 1; count > 0; count--){
-				if(active.PCounters[T][count] == 0){
-					active.PCounters[T][count] = active.PCounters[T][Attacker];
-					active.PCounters[T][Attacker] = 0;
+				if(this->PCounters[T][count] == 0){
+					this->PCounters[T][count] = this->PCounters[T][Attacker];
+					this->PCounters[T][Attacker] = 0;
 				}
 			}
 		}
 	}
-	//untap urza saga nonhaste UGLY
-	if (active.Field[T] > 0){
-		active.TapCrtr[T] -= active.CardEBT;
+	//untap urza saga nonhaste
+	if (this->Field[T] > 0){
+		this->TapCrtr[T] -= this->CardEBT;
 	}
 	if (Report == 1 && Game >= SkipGame){
-		cout << "End " << active.Name << " Turn " << T << "\n";
+		cout << "End " << this->Name << " Turn " << T << "\n";
 		cin >> Pause;
 	}
+	return enemy;
 }
 
 	//PASS TURN
-void Player::Next(){ //record all gamestate variables on to next turn
+void Player::Next(Player enemy){ //record all gamestate variables on to next turn
 	this->Life[T+1] = this->Life[T];
 	this->Field[T+1] = this->Field[T];
 	this->Grave[T+1] = this->Grave[T];
@@ -2508,6 +2572,9 @@ int main(){
 	cout << "MONO MAGIC 2021" << "\n";
 	cout << "By Robert Vroman" << "\n";
 	cout << "All rights reserved Hasbro and Wizards of the Coast" << "\n" << "\n";
+	P1.ClearVars();
+	P2.ClearVars();
+	//cin >> w;
 	cout << "Choose Player 1" << "\n";
 	P1.Name = Menu();
 	P1.DeckChoice();
@@ -2553,16 +2620,16 @@ int main(){
 		//P1 takes its turn
 		active = P1;
 		enemy = P2;
-		Turn();
+		Turn(P1, P2);
 		P1 = active;
 		P2 = enemy;
 		if (GameOver == 0){
 			if (P1.WinFlag == false){ //if P1 doesn't win, proceed to P2 turn
 				active = P2;
 				enemy = P1;
-				Turn(); //P2 takes its turn
-				P2 = active;
-				P1 = enemy;				
+				P1 = P2.Turn(P1); //P2 takes its turn
+				P1 = active;
+				P2 = enemy;				
 			} else { //P1 wins this turn
 				if (Game >= SkipGame && Report < 4){ //end game report
 					w = 0;
@@ -2596,8 +2663,8 @@ int main(){
 			P2.FlagOff();
 		}
 		//transfer game state to next turn
-		P1.Next();
-		P2.Next();
+		P1.Next(P2);
+		P2.Next(P1);
 		StaleMate(); //Check for stalemate
 		if (T < CheckPoint){ //end stalemate
 			if (Override == true){
@@ -2607,8 +2674,8 @@ int main(){
 		}
 		//check for (un)flip card
 		if (P1.Flip > 0 || P2.Flip > 0){
-		//	P1.FlipCard();
-		//	P2.FlipCard();
+			P1.FlipCard();
+			P2.FlipCard();
 		}
 	}
 	cout << "Game Over";
