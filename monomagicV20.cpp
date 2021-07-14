@@ -149,7 +149,7 @@ class Player{ //move functions out
 		int Debug(); //display current gamestate
 		void DeckChoice(); //menu for deck selection
 		void FlagOff(); //reset win flags
-		int KillAttacker(Player enemy); //remove dead creature
+
 		void Next(); //pass gamestate variables after every turn
 		void Summary(Player enemy); //end of game report
 		Player Parameters(Player enemy); //adjust abilities relative to enemy deck
@@ -159,7 +159,7 @@ class Player{ //move functions out
 		Player Win(Player enemy); //losing player searches for alt blocks/attacks/choices
 		Player Reset(Player enemy); //reset the game to a previous turn
 		void FullCopy(Player enemy); //copy all decision variables on to next turn during stalemate
-} P1, P2, active, enemy;
+} P1, P2, active, enemy, killer, target;
 
 string Menu(); //deck select menu
 void StaleMate(); //fast forward thru locked game states
@@ -172,7 +172,7 @@ int Declare(); //set attackers and blockers
 void End(); //end step
 int BlockSave(); //defender adjusts blockers to avoid immediate death
 int BlockShuffle(); //losing player incrementally rearranges existing blockers
-
+int KillCreature(); //remove dead creature
 
 int Player::Debug(){
 	cout << this->Name << "\n";
@@ -1486,73 +1486,76 @@ void Player::Summary(Player enemy){
 
 //SPECIAL ABILITIES
 	//Regenerate or morph or remove a dead creature
-int Player::KillAttacker(Player enemy){
-	//if enemy can morph
-	if (enemy.Morph > 0 && enemy.Lands[T] - enemy.TapLands[T] >= enemy.Morph && enemy.Lands[T] < enemy.Cost * 2){
-		enemy.Option++;
-		enemy.Decision[T] = 1; //create enemy option to morph
-		if (enemy.Choice[T] == 1){ //enemy takes morph option
-			enemy.TapLands[T] += enemy.Morph; //pay cost
-			enemy.Lands[T]++; //enemy gains land
-			if (ActivePlayer == enemy.Name){ //if dead morpher attacked, new land is tapped
-				enemy.TapLands[T]++;
+int KillCreature(){
+	//this-> = killer
+	//target = dead creature
+	target.Life[T] = 21;
+	//if killer can morph
+	if (killer.Morph > 0 && killer.Lands[T] - killer.TapLands[T] >= killer.Morph && killer.Lands[T] < killer.Cost * 2){
+		killer.Option++;
+		killer.Decision[T] = 1; //create enemy option to morph
+		if (killer.Choice[T] == 1){ //enemy takes morph option
+			killer.TapLands[T] += killer.Morph; //pay cost
+			killer.Lands[T]++; //enemy gains land
+			if (active.Name == killer.Name){ //if dead morpher attacked, new land is tapped
+				killer.TapLands[T]++;
 			}
 			SkipGame = Game;
-			cout << enemy.Name << " morphs and doesn't kill your guy. Game " << Game << " Turn " << T << "\n";
+			cout << killer.Name << " morphs and doesn't kill your guy. Game " << Game << " Turn " << T << "\n";
 			return 0;
 		}
 	}
 	//regen exception here
-	if (this->Regen > 0 && this->Lands[T] - this->TapLands[T] >= this->Regen){
-		this->TapLands[T] += this->Regen;
+	if (target.Regen > 0 && target.Lands[T] - target.TapLands[T] >= target.Regen){
+		target.TapLands[T] += target.Regen;
 		if (Report == 1 && Game >= SkipGame){
-			cout << this->Name << " regenerates a creature." << "\n";
+			cout << target.Name << " regenerates a creature." << "\n";
 		}
 		return 1;
 	} else { //kill an attacker
 		if (Report == 1 && Game >= SkipGame){
-			cout << this->Name << " loses a creature." << "\n";
+			cout << target.Name << " loses a creature." << "\n";
 		}
-		if (this->ManLand > 0){
-			this->Lands[T]--; //remove land from play
-			if (this->Vigil == false){
-				this->TapLands[T]--; //adjust # tapped lands
+		if (target.ManLand > 0){
+			target.Lands[T]--; //remove land from play
+			if (target.Vigil == false){
+				target.TapLands[T]--; //adjust # tapped lands
 			}
 		} else {
-			this->Field[T]--; //remove creature from play
-			if (ActivePlayer == this->Name && this->Vigil == false && enemy.Burn == 0){
-				this->TapCrtr[T]--; //the creature that died was tapped
+			target.Field[T]--; //remove creature from play
+			if (active.Name == target.Name && target.Vigil == false && killer.Burn == 0){
+				target.TapCrtr[T]--; //the creature that died was tapped
 			}
 		}
 		//deal with dying creature
-		if (this->Morph > 0 && this->Lands[T] - this->TapLands[T] >= this->Morph && this->Lands[T] < this->Cost * 2){ //check for morph conditions
-			this->Decision[T] = 1; //create option to morph
-			this->Option++;
-			if (this->Choice[T] == 1){ //taking morph option
-				this->TapLands[T] += this->Morph; //pay cost
-				this->Lands[T]++; //gain land
-				if (ActivePlayer == this->Name){ //if morpher attacked, new land is tapped
-					this->TapLands[T]++;
+		if (target.Morph > 0 && target.Lands[T] - target.TapLands[T] >= target.Morph && target.Lands[T] < target.Cost * 2){ //check for morph conditions
+			target.Decision[T] = 1; //create option to morph
+			target.Option++;
+			if (target.Choice[T] == 1){ //taking morph option
+				target.TapLands[T] += target.Morph; //pay cost
+				target.Lands[T]++; //gain land
+				if (active.Name == target.Name){ //if morpher attacked, new land is tapped
+					target.TapLands[T]++;
 				}
 				SkipGame = Game;
-				cout << this->Name << " morphs a creature into a land. Game " << Game << " Turn " << T << "\n";
+				cout << target.Name << " morphs a creature into a land. Game " << Game << " Turn " << T << "\n";
 				return 0;
 			}
 		}
 		//no more outs creature is actually dead
-		if (this->Token == 0 && enemy.Hazard == false){ //tokens and spikefield targets exiled
-			this->Grave[T]++; //card ends up in grave
+		if (target.Token == 0 && killer.Hazard == false){ //tokens and spikefield targets exiled
+			target.Grave[T]++; //card ends up in grave
 		}
-		if (this->Name == ActivePlayer){ //remove +1/+1 counters from dead creature
-			this->PCounters[T][Attacker] = 0;
+		if (target.Name == active.Name){ //remove +1/+1 counters from dead creature
+			target.PCounters[T][Attacker] = 0;
 		} else {
-			this->PCounters[T][Blocker] = 0;
+			target.PCounters[T][Blocker] = 0;
 		}
 		return 0;
 	}
 }
 
-	//Direct damage PUT BACK AS METHOD?
+	//Direct damage
 int Player::Burning(){
 	BurnDam = 0;
 	//sac damage lands
@@ -2004,10 +2007,14 @@ void Cast(){
 	StrikeDead = 0;
 	while (enemy.MaxBurn[T] >= active.Tough && active.Field[T] > 0 && BurnLost == true){
 		enemy.Burning(); //PROBLEM
-		if (active.KillAttacker(enemy) == 0){
+		killer = enemy;
+		target = active;
+		if (KillCreature() == 0){
 			StrikeDead++;
 			AttackDam = 0;
 		}
+		enemy = killer;
+		active = target;
 		if (Report == 1 && Game >=SkipGame && active.ManLand == 0){
 			cout << "remaining creatures " << active.Field[T] << "\n";
 		}
@@ -2251,10 +2258,14 @@ int Combat(){
 				//non-strike attacker vs strike blocker
 			if (active.FStrike == false && active.DStrike == false && (enemy.FStrike == true || enemy.DStrike == true)){
 				if (BlockDam >= active.Tough){ // if strike blockers deal lethal,
-					if (active.KillAttacker(enemy) == 0){ //kill attacker and if attacker doesnt regen, erase attacker damage
+					killer = enemy;
+					target = active;
+					if (KillCreature() == 0){ //kill attacker and if attacker doesnt regen, erase attacker damage
 						AttackDam = 0;
 						BlockDam = 0;
 					}
+					enemy = killer;
+					active = target;
 				}
 			}
 				//strike attacker vs non-strike blocker
@@ -2263,10 +2274,14 @@ int Combat(){
 				while (AttackDam >= enemy.Tough && Blocker <= enemy.Fight[T][Attacker]){ //try to kill blockers
 					Blocker++;
 					AttackDam -= enemy.Tough; //apply attack damage
-					if (enemy.KillAttacker(enemy) == 0){ //dead blockers either regen or erase their damage
+					killer = active;
+					target = enemy;
+					if (KillCreature() == 0){ //dead blockers either regen or erase their damage
 						BlockDam -= enemy.Power;
 						StrikeDead++;
 					}
+					active = killer;
+					enemy = target;
 				}
 			}
 			//Regular Combat
@@ -2280,13 +2295,17 @@ int Combat(){
 				//switcheroo for attacker + blocker
 			}
 			if (BlockDam >= active.Tough || (enemy.Dtouch == true && BlockDam > 0)){ //if attacker takes lethal,
-				if (active.KillAttacker(enemy) == 1){ //attacker dies unless regen
+				killer = enemy;
+				target = active;
+				if (KillCreature() == 1){ //attacker dies unless regen
 					//if attacker regens, trigger blocker's frost
 					if (enemy.Frost == true){
 						enemy.Frozen[T]++;
 						cout << "freeze - E " << enemy.Frozen[T] << "\n";
 					}
 				}
+				enemy = killer;
+				active = target;
 				if (active.Frost == true){ //if dead attacker has frost and is multiblocked and can only kill 1 blocker
 					if (enemy.Fight[T][Attacker] > 1 && active.Power >= enemy.Tough && active.Power < enemy.Tough * 2){
 						active.Option++;
@@ -2338,12 +2357,16 @@ int Combat(){
 				//		cout << "good shoot " << Game << " game turn " << T << "\n";
 				//	}
 					//if blocker regens vs frost, freeze blocker
-					if (enemy.KillAttacker(enemy) == 1){
+					target = enemy;
+					killer = active;
+					if (KillCreature() == 1){
 						if (active.Frost == true){
 							active.Frozen[T]++;
 							cout << "freeze - B " << active.Frozen[T] << "\n";
 						}
 					}
+					enemy = target;
+					active = killer;
 				//	if (enemy.Switch == true && enemy.Power > enemy.Tough){
 				//		BlockDam -= enemy.Power;
 				//		BlockDam += enemy.Tough;
@@ -2373,12 +2396,16 @@ int Combat(){
 			OnFire = 0;
 			if (enemy.MaxBurn[T] >= active.Tough && StrikeDead < active.Attack[T] && BurnLost == true){
 				while (enemy.MaxBurn[T] > 0 && OnFire < active.Tough){
-					OnFire += enemy.Burning();
+					OnFire += enemy.Burning(); //attacker is burning
 					if (OnFire >= active.Tough){ //attacker is toast
-						if (active.KillAttacker(enemy) == 0){ //if attacker doesn't regen, erase their damage
+						killer = enemy;
+						target = active;
+						if (KillCreature() == 0){ //if attacker doesn't regen, erase their damage
 							StrikeDead++;
 							AttackDam = 0;
 						}
+						enemy = killer;
+						active = target;
 					}
 				}
 			}
