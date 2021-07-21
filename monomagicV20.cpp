@@ -31,11 +31,11 @@ bool Override; //flag for stalemate game state
 int CheckPoint; //turn on which stalemate forms
 int LongGame; //the highest turn# of any game this match
 int FlipTurn; //turn # on which a card has flipped
-string ActivePlayer; //player 1 or 2 name here
 int ActualSkips; //# available blockers who for whatever reason did not end up blocking this turn
 int BlockedAttackers; //# attackers this turn that are blocked
 int BlockCheck; //counter for checking blocks
 bool Survivor; //whether current combatant survives
+bool Testy;
 
 class Player{ //move functions out
 	public:
@@ -145,20 +145,20 @@ class Player{ //move functions out
 		int SkipAttack[62]; //# available attackers not attacking
 		int TapLands[62]; //# tapped lands in play
 		int TapCrtr[62]; //# tapped creatures in play
+		//METHODS
 		int Burning(); //activate direct damage abilities
 		int Debug(); //display current gamestate
 		void DeckChoice(); //menu for deck selection
 		void FlagOff(); //reset win flags
-
 		void Next(); //pass gamestate variables after every turn
 		void Summary(Player enemy); //end of game report
-		Player Parameters(Player enemy); //adjust abilities relative to enemy deck
-		Player Setup(Player enemy); //initialize gamestate
+		void Parameters(Player opponent); //adjust abilities relative to enemy deck
+		void Setup(); //initialize gamestate
 		Player Chance(Player enemy); //trigger Chancellors
-		Player AttackSkip(Player enemy); //Losing player looks for most recent attack and blocks instead
+		Player AttackSkip(Player opponent); //Losing player looks for most recent attack and blocks instead
 		Player Win(Player enemy); //losing player searches for alt blocks/attacks/choices
-		Player Reset(Player enemy); //reset the game to a previous turn
-		void FullCopy(Player enemy); //copy all decision variables on to next turn during stalemate
+		Player Reset(Player opponent); //reset the game to a previous turn
+		void FullCopy(Player opponent); //copy all decision variables on to next turn during stalemate
 } P1, P2, active, enemy, killer, target;
 
 string Menu(); //deck select menu
@@ -167,8 +167,8 @@ int Turn(); //main turn cycle
 void Cast(); //play cards
 int FlipCard(); //activate flip cards
 int LandFall(); //play lands
-int Combat(); //Resolve combat
 int Declare(); //set attackers and blockers
+int Combat(); //Resolve combat
 void End(); //end step
 int BlockSave(); //defender adjusts blockers to avoid immediate death
 int BlockShuffle(); //losing player incrementally rearranges existing blockers
@@ -177,7 +177,7 @@ int KillCreature(); //remove dead creature
 int Player::Debug(){
 	cout << this->Name << "\n";
 	cout << "Game " << Game << " Turn " << T << "\n";
-	cout << "Active Player " << ActivePlayer << "\n";
+	cout << "Active Player " << active.Name << "\n";
 	cout << "Attacks " << this->Attack[T] << " Blocks " << this->Blockers[T] << "\n";
 	cout << "Tangle " << this->Tangle << " start hand " << this->StartHand << "\n";
 	cout << "Counters 1: " << this->PCounters[T][1] << " Counters 2: " << this->PCounters[T][2] << "\n";
@@ -829,7 +829,7 @@ void Player::DeckChoice(){
 }
 
 	//Initialize new game
-Player Player::Setup(Player enemy){
+void Player::Setup(){
 	this->MaxBurn[0] = 0;
 	this->Hand[1] = this->StartHand;
 	this->Deck[0] = 60 - this->StartHand;
@@ -843,40 +843,39 @@ Player Player::Setup(Player enemy){
 		Cast();
 		P2 = active;
 	}
-	return enemy;
 }
 
-	//adjust abilities relative to enemy deck
-Player Player::Parameters(Player enemy){
-	if (this->IsCreat == true && enemy.IsCreat == true){
+	//adjust abilities relative to enemy deck CHANGE ENEMY
+void Player::Parameters(Player opponent){
+	if (this->IsCreat == true && opponent.IsCreat == true){
 		//convert flying to unblockable
-		if ((this->Flying == true && enemy.Reach == false) || enemy.SacEOT == true){
+		if ((this->Flying == true && opponent.Reach == false) || opponent.SacEOT == true){
 			this->Unblock = true;
 			if (this->IsCreat == true && Game == 1){
 				cout << "\n" << this->Name << " is unblockable." << "\n";
 			}
 		}
 		//remove irrel trample
-		if (this->Power <= enemy.Tough){
+		if (this->Power <= opponent.Tough){
 			this->Trample = false;
 		}
 		//determine if blocking 1 on 1 causes resource loss
-		if (enemy.Power >= this->Tough || enemy.Dtouch == true || this->Hostile > 0 || (enemy.DStrike == true && enemy.Power * 2 >= this->Tough)){
+		if (opponent.Power >= this->Tough || opponent.Dtouch == true || this->Hostile > 0 || (opponent.DStrike == true && opponent.Power * 2 >= this->Tough)){
 			this->Chump = true;
 		}
 		//strikers chump off
-		if ((this->FStrike == true || this->DStrike == true) && enemy.Regen == 0 && this->Power >= enemy.Tough){
+		if ((this->FStrike == true || this->DStrike == true) && opponent.Regen == 0 && this->Power >= opponent.Tough){
 			this->Chump = false;
 		}
 		//always chump vs variable p/t creatures
-		if (enemy.VarPT == true){
+		if (opponent.VarPT == true){
 			if (Game == 1){
 				cout << "varble pt" << "\n";
 			}
 			this->Chump = true;
 		}
 		//special abilities that turn off chump ?= this->SacEOT == true ||
-		if (this->Shadow > 0 || (this->Regen == 1 && enemy.DStrike == false)){
+		if (this->Shadow > 0 || (this->Regen == 1 && opponent.DStrike == false)){
 			this->Chump = false;
 		}
 		if (this->Chump == true){
@@ -898,12 +897,12 @@ Player Player::Parameters(Player enemy){
 		//determine max block APPLY
 		if (this->Multi == true){
 			this->MaxBlock = 1;
-			int j = enemy.Power;
+			int j = opponent.Power;
 			if (j == 0){
 				j = this->Tough;
 			}
 			while (this->Tough - j > 0){
-				j += enemy.Power;
+				j += opponent.Power;
 				this->MaxBlock++;
 			}
 			if(MaxBlock < MinBlock){
@@ -911,13 +910,13 @@ Player Player::Parameters(Player enemy){
 			}
 		}
 
-		if ((this->FStrike == true || this->DStrike == true) && enemy.Regen == 0 && this->Power >= enemy.Tough && enemy.Tough > 0){
-			this->MaxBlock = (this->Power / enemy.Tough) + 1;
+		if ((this->FStrike == true || this->DStrike == true) && opponent.Regen == 0 && this->Power >= opponent.Tough && opponent.Tough > 0){
+			this->MaxBlock = (this->Power / opponent.Tough) + 1;
 		} else {
-			if (this->Trample == true && this->MaxBlock * enemy.Tough < this->Power){
+			if (this->Trample == true && this->MaxBlock * opponent.Tough < this->Power){
 				this->MaxBlock = 0;
-				if (enemy.Tough > 0){
-					while (this->MaxBlock * enemy.Tough < this->Power){
+				if (opponent.Tough > 0){
+					while (this->MaxBlock * opponent.Tough < this->Power){
 						this->MaxBlock++;
 					}
 				}
@@ -930,7 +929,6 @@ Player Player::Parameters(Player enemy){
 			cout << this->Name << " dies if blocked by " << this->MaxBlock << "\n";
 		}
 	}
-	return enemy;
 }
 
 //RESET GAME
@@ -1194,17 +1192,17 @@ int BlockSave(){
 }
 
 		//winner blocks the same
-Player Player::Reset(Player enemy){
-	enemy.Lost = true;
+Player Player::Reset(Player opponent){
+	opponent.Lost = true;
 	int j;
-	if (this->Attack[TC] > enemy.Attack[TC]){
+	if (this->Attack[TC] > opponent.Attack[TC]){
 		j = this->Attack[TC];
 	} else {
-		j = enemy.Attack[TC];
+		j = opponent.Attack[TC];
 	}
 	//record block change on turn after reset
 	for (int i = 1; i <= j + 1; i++){
-		enemy.Fight[TC+1][i] = enemy.Fight[TC][i];
+		opponent.Fight[TC+1][i] = opponent.Fight[TC][i];
 		this->Fight[TC+1][i] = this->Fight[TC][i];
 		
 	}
@@ -1212,25 +1210,25 @@ Player Player::Reset(Player enemy){
 	//	cout << "both save turn " << TC << " block pattern onto turn " << TC + 1 << "\n";
 	}
 	T = TC - 1;	//reset the game on turn before alt play found
-	return enemy;
+	return opponent;
 }
 
 		//Losing player looks for most recent attack and blocks instead
-Player Player::AttackSkip(Player enemy){
+Player Player::AttackSkip(Player opponent){
 	//if all blocking options this turn already played, switch the most recent attack to block, if enemy has at least one coresponding attack or block or is burn
-	if (enemy.Attack[TC] > 0 && (this->Name == P2.Name || TC < T)){ //check the below
+	if (opponent.Attack[TC] > 0 && (this->Name == P2.Name || TC < T)){ //check the below
 		if (this->Attack[TC] > 0 || (this->Attack[TC+1] > 0 && this->Name == P1.Name) || this->Fight[TC][1] > 0 || this->Fight[TC+1][1] > 0 || (this->Burn > 0 && BurnLost == true)){
-			enemy.AttackReset = true;
-			enemy.SkipAttack[TC]++;
-			enemy.Choice[TC] = 0;
+			opponent.AttackReset = true;
+			opponent.SkipAttack[TC]++;
+			opponent.Choice[TC] = 0;
 			T = TC - 1;
 			if (Game >= SkipGame){
-				cout << enemy.Name << " will replay turn " << TC << " and skip an attack." << "\n";
+				cout << opponent.Name << " will replay turn " << TC << " and skip an attack." << "\n";
 				cout << "\n" << "BEGIN GAME " << Game << "\n";
 			}
 		}
 	}
-	return enemy;
+	return opponent;
 }
 
 		//win flags off
@@ -1281,7 +1279,7 @@ void StaleMate(){ //auto fill repetitive game state onto remaining turns
 }
 
 		//copy all decision variables on to next turn during stalemate
-void Player::FullCopy(Player enemy){ //auto-fill remaining turns 
+void Player::FullCopy(Player opponent){ //auto-fill remaining turns 
 	this->Attack[T+1] = this->Attack[T];
 	this->Decision[T+1] = this->Decision[T];
 	this->Choice[T+1] = this->Choice[T];
@@ -1291,17 +1289,17 @@ void Player::FullCopy(Player enemy){ //auto-fill remaining turns
 		this->Grave[T+1]--; //QUESTIONABLE
 	}
 	this->Blockers[T+1] = this->Blockers[T];
-	for (Attacker = 1; Attacker <= enemy.Attack[T] + 1; Attacker++){
+	for (Attacker = 1; Attacker <= opponent.Attack[T] + 1; Attacker++){
 		this->Fight[T+1][Attacker] = this->Fight[T][Attacker];
 	}
 }
 
 	//REPORT end of game
-void Player::Summary(Player enemy){
+void Player::Summary(Player opponent){
 	cout << this->Name;
 	if (this->WinFlag == true){
 		cout << " WINNER";
-		if (enemy.Deck[T] < 1 && enemy.Life[T] > 0){
+		if (opponent.Deck[T] < 1 && opponent.Life[T] > 0){
 			cout << " by decking";
 		}
 	}
@@ -1318,7 +1316,7 @@ void Player::Summary(Player enemy){
 		}
 	}
 	if(Report != 2){
-		if (enemy.Infect == false){
+		if (opponent.Infect == false){
 			cout << "\n" << "LIFE ";
 			for (TC = 1; TC <= T; TC++){
 				if (this->Life[TC] < 10){
@@ -1332,10 +1330,10 @@ void Player::Summary(Player enemy){
 		} else {
 			cout << "\n" << "POSN ";
 			for (TC = 1; TC <= T; TC++){
-				if (enemy.Poison[TC] < 10){
+				if (opponent.Poison[TC] < 10){
 					cout << " ";
 				}
-				cout << enemy.Poison[TC];
+				cout << opponent.Poison[TC];
 				if(TC < 40){
 					cout << " ";	
 				}
@@ -1377,13 +1375,13 @@ void Player::Summary(Player enemy){
 				}
 			}		
 		}
-		if (enemy.Frost == true && this->Tough >= enemy.Power){
+		if (opponent.Frost == true && this->Tough >= opponent.Power){
 			cout << "\n" << "FRZN ";
 			for (TC = 1; TC <= T; TC++){
-				if (enemy.Frozen[TC] < 10){
+				if (opponent.Frozen[TC] < 10){
 					cout << " ";
 				}
-				cout << enemy.Frozen[TC];
+				cout << opponent.Frozen[TC];
 				if(TC < 40){
 					cout << " ";	
 				}
@@ -1401,14 +1399,14 @@ void Player::Summary(Player enemy){
 				cout << " ";
 			}
 		}
-		if (enemy.Unblock == false){
-			for(Attacker = 1; Attacker <= enemy.BigAttack; Attacker++){
+		if (opponent.Unblock == false){
+			for(Attacker = 1; Attacker <= opponent.BigAttack; Attacker++){
 				cout << "\n" << "BLOK ";
 				for (TC = 1; TC <= T; TC++){
 					if (this->Fight[TC][Attacker] < 10){
 						cout << " ";
 					}
-					if (enemy.Attack[TC] < Attacker){
+					if (opponent.Attack[TC] < Attacker){
 						cout << " ";
 					} else {
 						if (P2.WinFlag == true || this->Name == P2.Name || TC < T){
@@ -1422,14 +1420,14 @@ void Player::Summary(Player enemy){
 			}
 			cout << "\n" << "SKIP ";
 			for (TC = 1; TC <= T; TC++){
-				if (this->Fight[TC][enemy.Attack[TC] + 1] < 10){
+				if (this->Fight[TC][opponent.Attack[TC] + 1] < 10){
 					cout << " ";
 				}
-				if (this->Fight[TC][enemy.Attack[TC] + 1] == 0){
+				if (this->Fight[TC][opponent.Attack[TC] + 1] == 0){
 					cout << " ";
 				} else {
 					if (P2.WinFlag == true || this->Name == P2.Name || TC < T){
-						cout << this->Fight[TC][enemy.Attack[TC] + 1];
+						cout << this->Fight[TC][opponent.Attack[TC] + 1];
 					}
 				}
 				if(TC < 40){
@@ -1598,18 +1596,18 @@ int Player::Burning(){
 }
 
 	//trigger Chancellors
-Player Player::Chance(Player enemy){
+Player Player::Chance(Player opponent){
 	//Dross
-	enemy.Life[1] -= this->Spike * this->Hand[1];
+	opponent.Life[1] -= this->Spike * this->Hand[1];
 	this->Life[1] -= this->Pain * this->Hand[1];
 	//Forge
 	this->Field[1] = this->Token * this->Hand[1];
 	//Spires
-	enemy.Deck[0] -= this->Mill * this->Hand[1];
-	enemy.Grave[0] += this->Mill * this->Hand[1];
-	enemy.Deck[1] -= this->Mill * this->Hand[1];
-	enemy.Grave[1] += this->Mill * this->Hand[1];
-	return enemy;
+	opponent.Deck[0] -= this->Mill * this->Hand[1];
+	opponent.Grave[0] += this->Mill * this->Hand[1];
+	opponent.Deck[1] -= this->Mill * this->Hand[1];
+	opponent.Grave[1] += this->Mill * this->Hand[1];
+	return opponent;
 }
 
 	//flip Westvale Abbey
@@ -1686,7 +1684,7 @@ int Turn(){
 		active.Deck[T] -= 1;
 		active.Hand[T] += 1;
 		if (Report == 1 && Game >= SkipGame){
-			cout << active.Name << " draws a card." << "\n";
+			cout << active.Name << " draws a card.\n";
 		}
 	}
 	//1st main
@@ -2529,25 +2527,25 @@ int main(){
 	GameOver = 0;
 	Game = 1;
 	SkipGame = 0;
-	cout << "MONO MAGIC 2021" << "\n";
-	cout << "By Robert Vroman" << "\n";
-	cout << "All rights reserved Hasbro and Wizards of the Coast" << "\n" << "\n";
-	cout << "Choose Player 1" << "\n";
+	cout << "MONO MAGIC 2021\n";
+	cout << "By Robert Vroman\n";
+	cout << "All rights reserved Hasbro and Wizards of the Coast\n\n";
+	cout << "Choose Player 1\n";
 	P1.Name = Menu();
 	P1.DeckChoice();
-	cout << "Choose Player 2" << "\n";
+	cout << "Choose Player 2\n";
 	P2.Name = Menu();
 	P2.DeckChoice();
 	cout << "\n" << P1.Name << "\n";
-	cout << " vs" << "\n";
-	cout << P2.Name << "\n" << "\n";
+	cout << " vs\n";
+	cout << P2.Name << "\n\n";
 	while (Report < 1 || Report > 5){
-		cout << "Choose reporting detail level:" << "\n";
-		cout << "1. Play by play" << "\n";
-		cout << "2. Attacks only" << "\n";
-		cout << "3. Full grid summary" << "\n";
-		cout << "4. Game winners" << "\n";
-		cout << "5. Conclusion only" << "\n";
+		cout << "Choose reporting detail level:\n";
+		cout << "1. Play by play\n";
+		cout << "2. Attacks only\n";
+		cout << "3. Full grid summary\n";
+		cout << "4. Game winners\n";
+		cout << "5. Conclusion only\n";
 		cin >> Report;
 	}
 	cout << "Begin report on Game: ";
@@ -2563,8 +2561,8 @@ int main(){
 			LongGame = T;
 		}
 		if (T == 1){ //turn 1 set up
-			P2 = P1.Setup(P2);
-			P1 = P2.Setup(P1);
+			P1.Setup();
+			P2.Setup();
 			if (P1.Chancellor == true){
 				P2 = P1.Chance(P2);
 			}
@@ -2577,7 +2575,7 @@ int main(){
 		//P1 takes its turn
 		active = P1;
 		enemy = P2;
-		Turn();
+		Turn(); //USE RETURN INT OVER WINFLAG?
 		P1 = active;
 		P2 = enemy;
 		if (GameOver == 0){
@@ -2593,7 +2591,7 @@ int main(){
 					P1.Summary(P2);
 					w = 1;
 					P2.Summary(P1);
-					cout << "Enter any lower integer to continue or skip to game #" << "\n";
+					cout << "Enter any lower integer to continue or skip to game #\n";
 					cin >> SkipGame;
 				}
 				P1.FlagOff(); //turn off prior win flags
@@ -2607,7 +2605,7 @@ int main(){
 				w = 0;
 				P1.Summary(P2);
 				P2.Summary(P1);
-				cout << "Enter any lower integer to continue or skip to game #" << "\n";
+				cout << "Enter any lower integer to continue or skip to game #\n";
 				cin >> SkipGame;
 			}
 			P1.FlagOff(); //turn off prior win flags
