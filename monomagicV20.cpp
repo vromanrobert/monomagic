@@ -158,6 +158,7 @@ class Player{ //move functions out
 		Player AttackSkip(Player opponent); //Losing player looks for most recent attack and blocks instead
 		Player Win(Player enemy); //losing player searches for alt blocks/attacks/choices
 		Player Reset(Player opponent); //reset the game to a previous turn
+		Player BlockShuffle(); //losing player incrementally rearranges existing blockers
 		void FullCopy(Player opponent); //copy all decision variables on to next turn during stalemate
 } P1, P2, active, enemy, killer, target;
 
@@ -171,7 +172,7 @@ int Declare(); //set attackers and blockers
 int Combat(); //Resolve combat
 void End(); //end step
 int BlockSave(); //defender adjusts blockers to avoid immediate death
-int BlockShuffle(); //losing player incrementally rearranges existing blockers
+
 int KillCreature(); //remove dead creature
 
 int Player::Debug(){
@@ -950,7 +951,7 @@ Player Player::Win(Player enemy){
 		}
 		T = 0;
 		cout << "Game " << Game << "\n";
-		cout << enemy.Name << " will start the game over and target creatures." << "\n";
+		cout << enemy.Name << " will start the game over and target creatures.\n";
 		return enemy;
 	}
 	this->MostBlocks = 0;
@@ -1009,16 +1010,16 @@ Player Player::Win(Player enemy){
 			for (int Shuffle = Attacker + 1; Shuffle < this->Attack[TC] + 1; Shuffle++){ //check the # of blockers for each attacker following it,
 				if (enemy.Fight[TC][Attacker] > enemy.Fight[TC][Shuffle] + 1){ //if any attacker has 2+ more blockers than a subsequent attacker,
 					if(this->Trample == true || this->VarPT == true || enemy.VarPT == true){ //shuffle blockers once
-						BlockShuffle();
+						enemy = BlockShuffle();
 					} else {
 						while (enemy.Fight[TC][Attacker] > 1){
-							BlockShuffle(); //shuffle blockers as needed
+							enemy = BlockShuffle(); //shuffle blockers as needed
 						}
 					}
 					enemy = this->Reset(enemy); //reset gamestate to turn TC
 					if (Game >= SkipGame){
-						cout << "\n" << enemy.Name << " will replay turn " << TC << " and shuffle blockers." << "\n";
-						cout << "\n" << "BEGIN GAME " << Game << "\n";
+						cout << "\n" << enemy.Name << " will replay turn " << TC << " and shuffle blockers.\n";
+						cout << "\nBEGIN GAME " << Game << "\n";
 					}
 					this->Choice[TC] = 0;
 					enemy.Choice[TC] = 0;
@@ -1074,8 +1075,8 @@ Player Player::Win(Player enemy){
 				enemy.Fight[TC][this->Attack[TC]+1] = ActualSkips;
 				enemy = this->Reset(enemy);
 				if (Game >= SkipGame){
-					cout << "\n" << enemy.Name << " will replay turn " << TC << " and a skipped block now blocks." << "\n";
-					cout << "\n" << "BEGIN GAME " << Game << "\n";
+					cout << "\n" << enemy.Name << " will replay turn " << TC << " and a skipped block now blocks.\n";
+					cout << "\nBEGIN GAME " << Game << "\n";
 				}
 				this->Choice[TC] = 0;
 				enemy.Choice[TC] = 0;
@@ -1097,7 +1098,7 @@ Player Player::Win(Player enemy){
 			enemy.ChangeMind = true;
 			T = TC - 1;
 		//	if (Game >= SkipGame){
-				cout << enemy.Name << " will replay turn " << TC << " and change a decision." << "\n";
+				cout << enemy.Name << " will replay turn " << TC << " and change a decision.\n";
 				cout << "BEGIN GAME " << Game << "\n";
 		//	}
 		//	SkipGame = Game;
@@ -1118,8 +1119,8 @@ Player Player::Win(Player enemy){
 		this->MaxBurn[T] = 0;
 		enemy.MaxBurn[T] = 0;
 		enemy.StartHand--;
-		cout << "\n" << "Game " << Game - 1;
-		cout << "\n" << enemy.Name << " starts the game over and mulligans to " << enemy.StartHand << "\n" << "\n";
+		cout << "\nGame " << Game - 1;
+		cout << "\n" << enemy.Name << " starts the game over and mulligans to " << enemy.StartHand << "\n\n";
 			SkipGame = Game;
 		T = 0;
 		return enemy;
@@ -1129,22 +1130,21 @@ Player Player::Win(Player enemy){
 	} else {
 		cout << "Player 2 ";
 	}
-	cout << this->Name << " strictly wins in " << Game-1 << " games." << "\n";
+	cout << this->Name << " strictly wins in " << Game-1 << " games.\n";
 	if (enemy.Score == 0){
-		cout << "Ace!" << "\n";
-		cout << "Lowest enemy life " << enemy.LowLife << "\n";
-		cout << "Lowest enemy life " << this->LowLife << "\n";
+		cout << "Ace!\n";
+		cout << "Lowest winner life " << this->LowLife << "\n";
 		
 	} else {
 		cout << enemy.Name << " wins " << enemy.Score << "\n";
 	}
-	cout << "Longest game " << LongGame << "\n" << "\n";
+	cout << "Longest game was " << LongGame << " turns.\n\n";
 	GameOver = 1;
 	return enemy;
 }
 
 		//incrementally shuffle through multi-blocking options
-int BlockShuffle(){
+Player Player::BlockShuffle(){
 	enemy.Fight[TC][Attacker]--;
 	Deployed = 0;
 	for(ct3 = 0; ct3 < Attacker; ct3++){
@@ -1160,7 +1160,7 @@ int BlockShuffle(){
 			enemy.Fight[TC][ct3+1] = enemy.Fight[TC][ct3];
 		}
 	}
-	return 0;
+	return enemy;
 }
 
 		//adjust blockers to avoid immediate death
