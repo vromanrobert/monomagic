@@ -37,7 +37,7 @@ int BlockCheck; //counter for checking blocks
 bool Survivor; //whether current combatant survives
 bool Testy;
 
-class Player{ //move functions out
+class Player{
 	public:
 		string Name; //deck name
 		int Activate = 0; //# untapped lands in play required to activate an ability
@@ -172,7 +172,6 @@ int Declare(); //set attackers and blockers
 int Combat(); //Resolve combat
 void End(); //end step
 int BlockSave(); //defender adjusts blockers to avoid immediate death
-
 int KillCreature(); //remove dead creature
 
 int Player::Debug(){
@@ -232,12 +231,12 @@ void Player::DeckChoice(){
 		Cost = 6;
 		LandEBT = 1;
 		Trample = true;
-		cout << Name << "\n" << "Land Back Card - Land EBT" << "\n" << "Cost 6 - Creature 4/5 - Trample" << "\n";
+		cout << Name << "\nLand Back Card - Land EBT\nCost 6 - Creature 4/5 - Trample\n";
 	}
 	if (Name == "Allosaurus Rider"){
 		StartHand = 7;
 		Pitch = 3;
-		cout << Name << "\n" << "Pitch 2 - Creature 1/1" << "\n";
+		cout << Name << "\nPitch 2 - Creature 1/1\n";
 	}
 	if (Name == "Barbarian Ring"){
 		StartHand = 7;
@@ -248,12 +247,12 @@ void Player::DeckChoice(){
 		Burn = 2;
 		Activate = 2;
 		Threshold = 7;
-		cout << Name << "\n" << "Land - T: 1 + 1 pain" << "\n" << "Threshold 7 -> 1, T, sac: 2dam any target" << "\n";
+		cout << Name << "\nLand - T: 1 + 1 pain\nThreshold 7 -> 1, T, sac: 2dam any target\n";
 	}
 	if (Name == "Basking Rootwalla"){
 		StartHand = 7;
 		Madness = true;
-		cout << Name << "\n" << "Creature 1/1 - Madness 0" << "\n";
+		cout << Name << "\nCreature 1/1 - Madness 0\n";
 	}
 	if (Name == "Blackbloom Rogue"){
 		StartHand = 7;
@@ -264,12 +263,12 @@ void Player::DeckChoice(){
 		MinBlock = 2;
 		RogueThresh = 8;
 		RogueBonus = 3;
-		cout << Name << "\n" << "Land Back Card - Land EBT - T: 1" << "\n" << "Cost 3 - Creature 2/3" << "\n" << "Menace. +3/+0 if enemy has 8+ cards in yard" << "\n";
+		cout << Name << "\nLand Back Card - Land EBT - T: 1\nCost 3 - Creature 2/3\nMenace. +3/+0 if enemy has 8+ cards in yard\n";
 	}
 	if (Name == "Blazing Rootwalla") {
 		StartHand = 7;
 		Madness = true;
-		cout << Name << "\n" << "Creature 1/1 - Madness 0" << "\n";
+		cout << Name << "\nCreature 1/1 - Madness 0\n";
 	}
 	if (Name == "Blinkmoth Nexus"){
 		IsLand = true;
@@ -277,14 +276,14 @@ void Player::DeckChoice(){
 		Flying = true;
 		Reach = true;
 		Factory = 2;
-		cout << Name << "\n" << "Land - T: 1" << "\n" << "1: becomes 1/1 flying creature til EOT" << "\n" << "1: +1/+1 till EOT" << "\n";
+		cout << Name << "\nLand - T: 1\n1: becomes 1/1 flying creature til EOT\n1: +1/+1 till EOT\n";
 	}
 	if (Name == "Castle Ardenvale"){
 		IsLand = true;
 		LandEBT = 1;
 		Token = 1;
 		TapGen = 5;
-		cout << Name << "\n" << "Land EBT - T: 1" << "\n" << "4, T: create 1/1 token" << "\n";
+		cout << Name << "\nand EBT - T: 1\n4, T: create 1/1 token\n";
 	}
 	if (Name == "Cave of the Frost Dragon") {
 		IsLand = true;
@@ -294,7 +293,7 @@ void Player::DeckChoice(){
 		Reach = true;
 		PStart = 3;
 		TStart = 4;
-		cout << Name << endl << "Land - EBT. T: 1" << endl << "5: becomes 3/4 flying creature til EOT" << endl;
+		cout << Name << "\nLand - EBT. T: 1\n5: becomes 3/4 flying creature til EOT\n";
 	}
 	if (Name == "Chancellor of the Dross"){
 		StartHand = 7;
@@ -302,20 +301,20 @@ void Player::DeckChoice(){
 		IsCreat = false;
 		Spike = 3;
 		Pain = -3;
-		cout << Name << "\n" << "At the beginning of the game, deal 3 damage to enemy and you gain 3 life for each card in your starting hand" << "\n";
+		cout << Name << "\nAt the beginning of the game, deal 3 damage to enemy and you gain 3 life for each card in your starting hand\n";
 	}
 	if (Name == "Chancellor of the Forge"){
 		StartHand = 7;
 		Chancellor = true;
 		Token = 1;
-		cout << Name << "\n" << "At the beginning of the game, create a 1/1 haste token for each card in your starting hand" << "\n";
+		cout << Name << "\nAt the beginning of the game, create a 1/1 haste token for each card in your starting hand\n";
 	}
 	if (Name == "Chancellor of the Spires"){
 		StartHand = 7;
 		Chancellor = true;
 		IsCreat = false;
 		Mill = 7;
-		cout << Name << "\n" << "At the beginning of the game, mill enemy 7 for each card in your starting hand" << "\n";
+		cout << Name << "\nAt the beginning of the game, mill enemy 7 for each card in your starting hand\n";
 	}
 	if (Name == "Chancellor of the Tangle"){
 		StartHand = 7;
@@ -324,7 +323,7 @@ void Player::DeckChoice(){
 		Vigil = true;
 		Reach = true;
 		Tangle = 7;
-		cout << Name << "\n" << "On first turn cast one 6/7 vigilance reach creature if started with 7 cards" << "\n";
+		cout << Name << "\nOn first turn cast one 6/7 vigilance reach creature if started with 7 cards\n";
 	}
 	if (Name == "Celestial Colonnade"){
 		IsLand = true;
@@ -335,7 +334,7 @@ void Player::DeckChoice(){
 		Flying = true;
 		Reach = true;
 		Vigil = true;
-		cout << Name << "\n" << "Land EBT - T: 1" << "\n" << "5: becomes 4/4 flying vigilance until eot" << "\n";
+		cout << Name << "\nLand EBT - T: 1\n5: becomes 4/4 flying vigilance until eot\n";
 	}
 	if (Name == "Cephalid Coliseum"){
 		StartHand = 7;
@@ -368,7 +367,7 @@ void Player::DeckChoice(){
 		PStart = 3;
 		TStart = 2;
 		Unblock = true;
-		cout << Name << "\n" << "Land EBT - T: 1" << "\n" << "3: becomes 3/2 unblockable until eot" << "\n";
+		cout << Name << "\nLand EBT - T: 1\n3: becomes 3/2 unblockable until eot\n";
 	}
 	if (Name == "Den of the Bugbear") {
 		IsLand = true;
@@ -377,19 +376,19 @@ void Player::DeckChoice(){
 		//AttackGen = 1;
 		PStart = 3;
 		TStart = 2;
-		cout << Name << endl << "Land - EBT. T: 1" << endl << "4: becomes 3/2 creature til EOT. When attacks, creates 1/1 attacking token." << endl;
+		cout << Name << "\nLand - EBT. T: 1\n4: becomes 3/2 creature til EOT. When attacks, creates 1/1 attacking token.\n";
 	}
 	if (Name == "Dread Statuary"){
 		IsLand = true;
 		ManLand = 5;
 		PStart = 4;
 		TStart = 2;
-		cout << Name << "\n" << "Land - T: 1" << "\n" << "4: becomes 4/2 until eot" << "\n";
+		cout << Name << "\nLand - T: 1\n4: becomes 4/2 until eot\n";
 	}
 	if (Name == "Dryad Arbor"){
 		IsLand = true;
 		ManLand = 1;
-		cout << Name << "\n" << "Land Creature" << "\n" << "1/1" << "\n";
+		cout << Name << "\nLand Creature\n1/1\n";
 	}
 	if (Name == "Dwarven Mine"){
 		IsLand = true;
@@ -418,7 +417,7 @@ void Player::DeckChoice(){
 		PStart = 4;
 		TStart = 3;
 		Vigil = true;
-		cout << Name << "\n" << "Land - T: 1" << "\n" << "3: becomes 4/3 vigilance until eot" << "\n";
+		cout << Name << "\nLand - T: 1\n3: becomes 4/3 vigilance until eot\n";
 	}
 	if (Name == "Faerie Conclave"){
 		IsLand = true;
@@ -427,14 +426,14 @@ void Player::DeckChoice(){
 		PStart = 2;
 		Flying = true;
 		Reach = true;
-		cout << Name << "\n" << "Land EBT - T: 1" << "\n" << "2: becomes 2/1 flying until eot" << "\n";
+		cout << Name << "\nLand EBT - T: 1\n2: becomes 2/1 flying until eot\n";
 	}
 	if (Name == "Forbidding Watchtower"){
 		IsLand = true;
 		ManLand = 3;
 		LandEBT = 1;
 		TStart = 5;
-		cout << Name << "\n" << "Land EBT - T: 1" << "\n" << "2: becomes 1/5 until eot" << "\n";
+		cout << Name << "\nLand EBT - T: 1\n2: becomes 1/5 until eot\n";
 	}
 	if (Name == "Foundry of the Consuls"){
 		IsLand = true;
@@ -450,7 +449,7 @@ void Player::DeckChoice(){
 		PStart = 2;
 		TStart = 3;
 		Frost = true;
-		cout << Name << "\n" << "Land - T: 1" << "\n" << "2: becomes 2/3 frost until eot" << "\n";
+		cout << Name << "\nLand - T: 1\n2: becomes 2/3 frost until eot\n";
 	}
 	if (Name == "Gargoyle Castle"){
 		IsLand = true;
@@ -468,7 +467,7 @@ void Player::DeckChoice(){
 		LandEBT = 1;
 		PStart = 2;
 		FStrike = true;
-		cout << Name << "\n" << "Land EBT - T: 1" << "\n" << "2: becomes 2/1 first strike until eot" << "\n";
+		cout << Name << "\nLand EBT - T: 1\n2: becomes 2/1 first strike until eot\n";
 	}
 	if (Name == "Hall of the Storm Giants") {
 		IsLand = true;
@@ -477,7 +476,7 @@ void Player::DeckChoice(){
 		Hex = true;
 		PStart = 7;
 		TStart = 7;
-		cout << Name << endl << "Land - EBT. T: 1" << endl << "6: becomes 7/7 creature w hexproof til EOT" << endl;
+		cout << Name << "\nLand - EBT. T: 1\n6: becomes 7/7 creature w hexproof til EOT\n";
 	}
 	if (Name == "Hissing Quagmire"){
 		IsLand = true;
@@ -486,7 +485,7 @@ void Player::DeckChoice(){
 		PStart = 2;
 		TStart = 2;
 		Dtouch = true;
-		cout << Name << "\n" << "Land EBT - T: 1" << "\n" << "3: becomes 2/2 death touch until eot" << "\n";
+		cout << Name << "\nLand EBT - T: 1\n3: becomes 2/2 death touch until eot\n";
 	}
 	if (Name == "Hive of the Eye Tyrant") {
 		IsLand = true;
@@ -496,7 +495,7 @@ void Player::DeckChoice(){
 		Tyrant = 1;
 		PStart = 3;
 		TStart = 3;
-		cout << Name << endl << "Land - EBT. T: 1" << endl << "4: becomes 3/3 creature w menace and yardhate til EOT" << endl;
+		cout << Name << "\nLand - EBT. T: 1\n4: becomes 3/3 creature w menace and yardhate til EOT\n";
 	}
 	if (Name == "Hostile Desert"){
 		StartHand = 7;
@@ -520,7 +519,7 @@ void Player::DeckChoice(){
 		Flying = true;
 		Reach = true;
 		Infect = true;
-		cout << Name << "\n" << "Land - T: 1" << "\n" << "1: becomes 1/1 flying infect until eot" << "\n";
+		cout << Name << "\nLand - T: 1\n1: becomes 1/1 flying infect until eot\n";
 	}
 	if (Name == "Ipnu Rivulet"){
 		IsLand = true;
@@ -550,7 +549,7 @@ void Player::DeckChoice(){
 		LandEBT = 1;
 		ManLand = 3;
 		//Hydra = 1;
-		cout << Name << endl << "Land - EBT. T: 1" << endl << "X1: becomes X/X creature til EOT" << endl;
+		cout << Name << "\nLand - EBT. T: 1\nX1: becomes X/X creature til EOT\n";
 	}
 	if (Name == "Lavaclaw Reaches"){
 		IsLand = true;
@@ -559,7 +558,7 @@ void Player::DeckChoice(){
 		PStart = 2;
 		TStart = 2;
 		Lava = 1;
-		cout << Name << "\n" << "Land EBT - T: 1" << "\n" << "3: becomes 2/2 with 1:+1/+0 until eot" << "\n";
+		cout << Name << "\nLand EBT - T: 1\n3: becomes 2/2 with 1:+1/+0 until eot\n";
 	}
 	if (Name == "Lumbering Falls"){
 		IsLand = true;
@@ -568,7 +567,7 @@ void Player::DeckChoice(){
 		PStart = 3;
 		TStart = 3;
 		Hex = true;
-		cout << Name << "\n" << "Land EBT - T: 1" << "\n" << "4: becomes 3/3 hexproof until eot" << "\n";
+		cout << Name << "\nLand EBT - T: 1\n4: becomes 3/3 hexproof until eot\n";
 	}
 	if (Name == "Memnite"){
 		StartHand = 7;
@@ -820,9 +819,9 @@ void Player::DeckChoice(){
 		this->GraveCard = true;
 	}
 	if (this->Haste == false){
-//		cout << "lets not be hasty" << "\n";
+//		cout << "lets not be hasty\n";
 	} else {
-//		cout << "hasty pants" << "\n";
+//		cout << "hasty pants\n";
 	}
 	if (this->Factory > 0 || this->Lava > 0 || this->Rage > 0 || this->Barrens > 0 || this->Switch == true || this->Mammoth > 0 || this->Team == true){
 		this->VarPT = true; //flag if deck's p/t can change for any reason
@@ -853,7 +852,7 @@ void Player::Parameters(Player opponent){
 		if ((this->Flying == true && opponent.Reach == false) || opponent.SacEOT == true){
 			this->Unblock = true;
 			if (this->IsCreat == true && Game == 1){
-				cout << "\n" << this->Name << " is unblockable." << "\n";
+				cout << "\n" << this->Name << " is unblockable.\n";
 			}
 		}
 		//remove irrel trample
@@ -871,7 +870,7 @@ void Player::Parameters(Player opponent){
 		//always chump vs variable p/t creatures
 		if (opponent.VarPT == true){
 			if (Game == 1){
-				cout << "varble pt" << "\n";
+				cout << "varble pt\n";
 			}
 			this->Chump = true;
 		}
@@ -881,12 +880,12 @@ void Player::Parameters(Player opponent){
 		}
 		if (this->Chump == true){
 			if (Game == 1){
-				cout << "\n" << this->Name << " dies when blocking" << "\n" << "\n";
+				cout << "\n" << this->Name << " dies when blocking\n\n";
 			}
 		} else { //multiblock flag
 			this->Multi = true;
 			if (Game == 1){
-				cout << "\n" << this->Name << " must be blocked by multiple enemies to be killed" << "\n" << "\n";
+				cout << "\n" << this->Name << " must be blocked by multiple enemies to be killed\n\n";
 			}
 			if (this->Regen > 0){
 				this->Multi = false;
@@ -1086,7 +1085,7 @@ Player Player::Win(Player enemy){
 		//if all blocking options already played
 		enemy = this->AttackSkip(enemy); //switch the most recent attack to block, if enemy has at least one coresponding attack or block, or winner is burn
 		if (enemy.AttackReset == true){
-			//cout << "attack reset true" << "\n";
+			//cout << "attack reset true\n";
 				this->Choice[TC] = 0;
 				enemy.Choice[TC] = 0;
 			return enemy;
@@ -1182,7 +1181,7 @@ int BlockSave(){
 					BlockedAttackers++;
 //					SkipGame = Game;
 				}
-//				cout << "ur gonna die" << "\n";
+//				cout << "ur gonna die\n";
 				Attacker = 1;
 			}
 			Attacker--;
@@ -1223,8 +1222,8 @@ Player Player::AttackSkip(Player opponent){
 			opponent.Choice[TC] = 0;
 			T = TC - 1;
 			if (Game >= SkipGame){
-				cout << opponent.Name << " will replay turn " << TC << " and skip an attack." << "\n";
-				cout << "\n" << "BEGIN GAME " << Game << "\n";
+				cout << opponent.Name << " will replay turn " << TC << " and skip an attack.\n";
+				cout << "\nBEGIN GAME " << Game << "\n";
 			}
 		}
 	}
@@ -1304,7 +1303,7 @@ void Player::Summary(Player opponent){
 		}
 	}
 	if (this->Name == P1.Name){
-		cout << "\n" << "TURN ";
+		cout << "\nTURN ";
 		for (TC = 1; TC <= T; TC++){
 			if (TC < 10){
 				cout << " ";
@@ -1317,7 +1316,7 @@ void Player::Summary(Player opponent){
 	}
 	if(Report != 2){
 		if (opponent.Infect == false){
-			cout << "\n" << "LIFE ";
+			cout << "\nLIFE ";
 			for (TC = 1; TC <= T; TC++){
 				if (this->Life[TC] < 10){
 					cout << " ";
@@ -1328,7 +1327,7 @@ void Player::Summary(Player opponent){
 				}
 			}
 		} else {
-			cout << "\n" << "POSN ";
+			cout << "\nPOSN ";
 			for (TC = 1; TC <= T; TC++){
 				if (opponent.Poison[TC] < 10){
 					cout << " ";
@@ -1340,7 +1339,7 @@ void Player::Summary(Player opponent){
 			}
 		}
 		if (this->StartHand > 1){
-			cout << "\n" << "HAND ";
+			cout << "\nHAND ";
 			for (TC = 1; TC <= T-w; TC++){
 				if (this->Hand[TC] < 10){
 					cout << " ";
@@ -1352,7 +1351,7 @@ void Player::Summary(Player opponent){
 			}
 		}
 		if (this->IsLand == true || this->Cost > 0){
-			cout << "\n" << "LAND ";
+			cout << "\nLAND ";
 			for (TC = 1; TC <= T; TC++){
 				if (this->Lands[TC] < 10){
 					cout << " ";
@@ -1364,7 +1363,7 @@ void Player::Summary(Player opponent){
 			}
 		}
 		if (this->ManLand == 0 && this->IsCreat == true){
-			cout << "\n" << "CRTR ";
+			cout << "\nCRTR ";
 			for (TC = 1; TC <= T; TC++){
 				if (this->Field[TC] < 10){
 					cout << " ";
@@ -1376,7 +1375,7 @@ void Player::Summary(Player opponent){
 			}		
 		}
 		if (opponent.Frost == true && this->Tough >= opponent.Power){
-			cout << "\n" << "FRZN ";
+			cout << "\nFRZN ";
 			for (TC = 1; TC <= T; TC++){
 				if (opponent.Frozen[TC] < 10){
 					cout << " ";
@@ -1389,7 +1388,7 @@ void Player::Summary(Player opponent){
 		}		
 	}
 	if (this->IsCreat == true){
-		cout << "\n" << "ATAK ";
+		cout << "\nATAK ";
 		for (TC = 1; TC <= T-w; TC++){
 			if (this->Attack[TC] < 10){
 				cout << " ";
@@ -1401,7 +1400,7 @@ void Player::Summary(Player opponent){
 		}
 		if (opponent.Unblock == false){
 			for(Attacker = 1; Attacker <= opponent.BigAttack; Attacker++){
-				cout << "\n" << "BLOK ";
+				cout << "\nBLOK ";
 				for (TC = 1; TC <= T; TC++){
 					if (this->Fight[TC][Attacker] < 10){
 						cout << " ";
@@ -1418,7 +1417,7 @@ void Player::Summary(Player opponent){
 					}
 				}
 			}
-			cout << "\n" << "SKIP ";
+			cout << "\nSKIP ";
 			for (TC = 1; TC <= T; TC++){
 				if (this->Fight[TC][opponent.Attack[TC] + 1] < 10){
 					cout << " ";
@@ -1441,14 +1440,14 @@ void Player::Summary(Player opponent){
 		j += this->Decision[TC];
 	}
 	if (j > 0){
-		cout << "\n" << "PLAY ";
+		cout << "\nPLAY ";
 		for (TC = 1; TC <= T; TC++){
 			cout << " " << this->Choice[TC];
 			if(TC < 40){
 				cout << " ";
 			}
 		}
-		cout << "\n" << "OPTS ";
+		cout << "\nOPTS ";
 		for (TC = 1; TC <= T; TC++){
 			cout << " " << this->Decision[TC];
 			if(TC < 40){
@@ -1456,7 +1455,7 @@ void Player::Summary(Player opponent){
 			}
 		}		
 	}
-	cout << "\n" << "YARD ";
+	cout << "\nYARD ";
 	for (TC = 1; TC <= T; TC++){
 		if (this->Grave[TC] < 10){
 			cout << " ";
@@ -1467,7 +1466,7 @@ void Player::Summary(Player opponent){
 		}
 	}
 	if (Report != 2){
-		cout << "\n" << "DECK ";
+		cout << "\nDECK ";
 		for (TC = 1; TC <= T; TC++){
 			if (this->Deck[TC] < 10){
 				cout << " ";
@@ -1507,12 +1506,12 @@ int KillCreature(){
 	if (target.Regen > 0 && target.Lands[T] - target.TapLands[T] >= target.Regen){
 		target.TapLands[T] += target.Regen;
 		if (Report == 1 && Game >= SkipGame){
-			cout << target.Name << " regenerates a creature." << "\n";
+			cout << target.Name << " regenerates a creature.\n";
 		}
 		return 1;
 	} else { //kill an attacker
 		if (Report == 1 && Game >= SkipGame){
-			cout << target.Name << " loses a creature." << "\n";
+			cout << target.Name << " loses a creature.\n";
 		}
 		if (target.ManLand > 0){
 			target.Lands[T]--; //remove land from play
@@ -1563,7 +1562,7 @@ int Player::Burning(){
 		this->Lands[T] -= 1;
 		this->Grave[T] += 1;
 		if (Report == 1 && Game >= SkipGame){
-			cout << this->Name << " deals " << this->Spike << " damage." << "\n";
+			cout << this->Name << " deals " << this->Spike << " damage.\n";
 		}
 	}
 	//tap damage lands
@@ -1571,7 +1570,7 @@ int Player::Burning(){
 		BurnDam += this->Spike;
 		this->TapLands[T] += this->TapDam;
 		if (Report == 1 && Game >= SkipGame){
-			cout << this->Name << " deals " << this->Spike << " damage." << "\n";
+			cout << this->Name << " deals " << this->Spike << " damage.\n";
 		}
 	}
 	//spell damage
@@ -1586,7 +1585,7 @@ int Player::Burning(){
 				this->Hand[T] -= 1;
 			}
 			if (Report == 1 && Game >= SkipGame){
-				cout << this->Name << " deals " << this->Spike << " damage." << "\n";
+				cout << this->Name << " deals " << this->Spike << " damage.\n";
 			}
 			this->Grave[T] += 1;
 		}
@@ -1689,7 +1688,7 @@ int Turn(){
 	}
 	//1st main
 	if (Report == 1 && Game >= SkipGame){
-		cout << "1st main phase" << "\n";
+		cout << "1st main phase\n";
 	}
 	if (active.ManLand == 1){
 		active.MaxAttack = active.Lands[T];
@@ -1734,14 +1733,14 @@ int Turn(){
 	}
 	//2nd main - play cards that cannot contribute to win this turn
 	if (Report == 1 && Game >= SkipGame){
-		cout << "2nd main phase" << "\n";
+		cout << "2nd main phase\n";
 	}
 	if (active.Haste == false){
 		Cast();
 	}
 	//end 
 	if (Report == 1 && Game >= SkipGame){
-		cout << "end step" << "\n";
+		cout << "end step\n";
 	}
 	End();
 	return 0;
@@ -1814,16 +1813,16 @@ int LandFall(){
 		if (Report == 1 && Game >= SkipGame){
 			cout << active.Name << " plays a land";
 			if (active.LandEBT > 0){
-				cout << " tapped." << "\n";
+				cout << " tapped.\n";
 			} else {
-				cout << "." << "\n";
+				cout << ".\n";
 			}
 		}
 		//Dwarven Mine
 		if (active.Mine > 0 && active.Lands[T] > active.Mine){
 			active.Field[T] += active.Token;
 			if (Report == 1 && Game >= SkipGame){
-				cout << active.Name << " makes a token." << "\n";
+				cout << active.Name << " makes a token.\n";
 			}			
 		}
 	}
@@ -1838,7 +1837,7 @@ void Cast(){
 			active.Field[T] += 1;
 			active.Hand[T] -= active.Pitch;
 			if (Report == 1 && Game >= SkipGame){
-				cout << active.Name << " casts a creature." << "\n";
+				cout << active.Name << " casts a creature.\n";
 			}
 		}
 	}
@@ -1846,7 +1845,7 @@ void Cast(){
 	if (active.Piranha > 0){
 		enemy.Life[T] -= active.Piranha;
 		if (Report == 1 && Game >= SkipGame){
-			cout << active.Name << " deals " << active.Piranha << " damage." << "\n";
+			cout << active.Name << " deals " << active.Piranha << " damage.\n";
 		}
 	}
 		//Stalking Stones
@@ -1855,7 +1854,7 @@ void Cast(){
 		active.TapCrtr[T]++;
 		active.Lands[T]--;
 		if (Report == 1 && Game >= SkipGame){
-			cout << active.Name << " makes a creature." << "\n";
+			cout << active.Name << " makes a creature.\n";
 		}
 	}
 		//sac land token generators
@@ -1864,7 +1863,7 @@ void Cast(){
 		if (active.Field[T] == 0 || active.Choice[T] == 0){
 			if (active.Field[T] > 0 && active.Pain > 0){
 				active.Decision[T] = 1;
-				//cout << "Binary " << T << " true" << "\n";
+				//cout << "Binary " << T << " true\n";
 			} else {
 				active.Decision[T] = 0;
 				active.Choice[T] = 0;
@@ -1880,7 +1879,7 @@ void Cast(){
 			}
 			active.Life[T] -= active.Pain;
 			if (Report == 1 && Game >= SkipGame){
-				cout << active.Name << " makes " << active.Token << " token." << "\n";
+				cout << active.Name << " makes " << active.Token << " token.\n";
 			}
 		} else {
 			active.Decision[T] = 0;
@@ -1898,7 +1897,7 @@ void Cast(){
 			active.Life[T] -= active.Pain;
 			active.TapLands[T] += active.TapGen;
 			if (Report == 1 && Game >= SkipGame){
-				cout << active.Name << " makes " << active.Token << " token." << "\n";
+				cout << active.Name << " makes " << active.Token << " token.\n";
 			}
 			if (FlipCard() == 1){
 				active.Parameters(enemy);
@@ -1924,7 +1923,7 @@ void Cast(){
 	//Nether Shadow
 	if (active.Shadow > 0 && active.Grave[T] > active.Shadow){
 		if (Report == 1 && Game >= SkipGame){
-			cout << active.Name << " recurs " << active.Grave[T] - active.Shadow << " creature." << "\n";
+			cout << active.Name << " recurs " << active.Grave[T] - active.Shadow << " creature.\n";
 		}
 		active.Field[T] += active.Grave[T] - active.Shadow;
 		active.Grave[T] = active.Shadow;
@@ -1934,7 +1933,7 @@ void Cast(){
 		active.Field[T]++;
 		active.Grave[T]--;
 		if (Report == 1 && Game >= SkipGame){
-			cout << active.Name << " recurs a creature." << "\n";
+			cout << active.Name << " recurs a creature.\n";
 		}
 	}
 	//Chancellor of the Tangle
@@ -1946,7 +1945,7 @@ void Cast(){
 	if (active.Slug > 0 && (active.Hand[T] + enemy.TapCrtr[T] - enemy.Field[T]) * active.Power >= enemy.Life[T]){
 		active.Field[T] += active.Hand[T];
 		active.Hand[T] = 0;
-		cout << "Unleash the slugs!" << "\n";
+		cout << "Unleash the slugs!\n";
 	}
 	//land backed cards
 	if (active.Cost > 0){
@@ -1957,14 +1956,14 @@ void Cast(){
 					active.Field[T] += active.Token;
 					active.Grave[T] ++;
 					if (Report == 1 && Game >= SkipGame){
-						cout << active.Name << " makes " << active.Token << " tokens." << "\n";
+						cout << active.Name << " makes " << active.Token << " tokens.\n";
 					}
 				}
 			} else { //creatures
 				active.Field[T]++;
 				active.Life[T] -= active.Pain;
 				if (Report == 1 && Game >= SkipGame){
-					cout << active.Name << " casts a creature." << "\n";
+					cout << active.Name << " casts a creature.\n";
 				}
 			}
 			active.Hand[T]--;
@@ -2122,7 +2121,7 @@ int Declare(){
 	if (active.RogueThresh > 0){
 		if (enemy.Grave[T] >= active.RogueThresh){
 			if (Report == 1){
-				cout << "GOING ROGUE" << "\n";
+				cout << "GOING ROGUE\n";
 			}
 			active.Power = active.PStart + active.RogueBonus;
 		} else {
@@ -2218,10 +2217,10 @@ int Declare(){
 	}
 	//attack report
 	if (Report == 1 && Game >= SkipGame){ 
-		cout << active.MaxAttack << " Max attacks" << "\n";
-		cout << active.Attack[T] << " Attackers" << "\n";
-		cout << active.SkipAttack[T] << " Skip Attacks" << "\n";
-		cout << enemy.Blockers[T] << " Enemy Blockers" << "\n";
+		cout << active.MaxAttack << " Max attacks\n";
+		cout << active.Attack[T] << " Attackers\n";
+		cout << active.SkipAttack[T] << " Skip Attacks\n";
+		cout << enemy.Blockers[T] << " Enemy Blockers\n";
 		if (active.Attack[T] > 0){
 			cout << " S ";
 			for (Attacker = 1; Attacker <= active.Attack[T]; Attacker++){
@@ -2452,12 +2451,12 @@ void End(){
 		if (active.Madness == true){
 			active.Field[T] ++;
 			if (Report == 1 && Game >= SkipGame){
-				cout << active.Name << " plays a madness creature." << "\n";
+				cout << active.Name << " plays a madness creature.\n";
 			}
 		} else {
 			active.Grave[T]++;
 			if (Report == 1 && Game >= SkipGame){
-				cout << active.Name << " discards." << "\n";
+				cout << active.Name << " discards.\n";
 			}
 		}
 	}
@@ -2556,7 +2555,7 @@ int main(){
 	T = 0;
 	//main turn cycle
 	while (GameOver == 0){
-		T += 1; //increment turn
+		T++; //increment turn
 		if (T > LongGame){
 			LongGame = T;
 		}
