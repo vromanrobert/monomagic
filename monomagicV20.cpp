@@ -934,8 +934,10 @@ void Player::Parameters(Player opponent){
 //RESET GAME
 	//someone has WON the current Game -> Loser search for alt plays
 Player Player::Win(Player enemy){
-	this->Score++;
-	int Marker = 10000; //call out every 10,000 games for long fast forwards
+	//this-> is winner
+	//enemy is loser
+	this->Score++; //add to winner's score count, in case it ultimately loses.
+	int Marker = 10000; //call out every 10,000 games during long fast forwards
 	if (remainder(Game, Marker) == 0){
 		cout << Game << "\n";
 	}
@@ -1078,7 +1080,9 @@ Player Player::Win(Player enemy){
 					cout << "\nBEGIN GAME " << Game << "\n";
 				}
 				this->Choice[TC] = 0;
-				enemy.Choice[TC] = 0;
+				if (enemy.Name == P2.Name){
+					enemy.Choice[TC] = 0;
+				}
 				return enemy;
 			}
 		}
@@ -1120,7 +1124,7 @@ Player Player::Win(Player enemy){
 		enemy.StartHand--;
 		cout << "\nGame " << Game - 1;
 		cout << "\n" << enemy.Name << " starts the game over and mulligans to " << enemy.StartHand << "\n\n";
-			SkipGame = Game;
+			SkipGame = Game; //delete from final version
 		T = 0;
 		return enemy;
 	}
@@ -1190,7 +1194,7 @@ int BlockSave(){
 	return 0;
 }
 
-		//winner blocks the same
+		//lock in winner's blocking patterns
 Player Player::Reset(Player opponent){
 	opponent.Lost = true;
 	int j;
@@ -1486,8 +1490,7 @@ void Player::Summary(Player opponent){
 int KillCreature(){
 	//this-> = killer
 	//target = dead creature
-	target.Life[T] = 21;
-	//if killer can morph
+		//if killer can morph
 	if (killer.Morph > 0 && killer.Lands[T] - killer.TapLands[T] >= killer.Morph && killer.Lands[T] < killer.Cost * 2){
 		killer.Option++;
 		killer.Decision[T] = 1; //create enemy option to morph
@@ -2449,7 +2452,7 @@ void End(){
 	if (active.Hand[T] > 7){
 		active.Hand[T] = 7;
 		if (active.Madness == true){
-			active.Field[T] ++;
+			active.Field[T]++;
 			if (Report == 1 && Game >= SkipGame){
 				cout << active.Name << " plays a madness creature.\n";
 			}
@@ -2532,11 +2535,10 @@ int main(){
 	cout << "Choose Player 1\n";
 	P1.Name = Menu();
 	P1.DeckChoice();
+	cout << P1.Name << "\n vs\n";
 	cout << "Choose Player 2\n";
 	P2.Name = Menu();
 	P2.DeckChoice();
-	cout << "\n" << P1.Name << "\n";
-	cout << " vs\n";
 	cout << P2.Name << "\n\n";
 	while (Report < 1 || Report > 5){
 		cout << "Choose reporting detail level:\n";
@@ -2600,6 +2602,18 @@ int main(){
 		}
 		//if P2 wins this turn,
 		if (P2.WinFlag == true){
+/*			if (Game > 13051){
+				int v = 0;
+				for(int x=1;x<T;x++){
+					if(P1.Choice[x] > 0){
+						v++;
+					}
+				}
+				if (v ==0){
+					SkipGame = Game;
+					cout << "\nGame " << Game << " option reversed";
+				}
+			}*/
 			if (Game >= SkipGame && Report < 4){ //end game report
 				w = 0;
 				P1.Summary(P2);
